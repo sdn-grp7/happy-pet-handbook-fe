@@ -37,7 +37,7 @@ export function SiteLayout() {
                 <DropdownMenuItem asChild key={item.to}>
                   <Link
                     to={item.to}
-                    activeOptions={{ exact: item.to === "/" }}
+                    activeOptions={{ exact: true }}
                     className="w-full cursor-pointer"
                     activeProps={{ className: "w-full cursor-pointer bg-muted font-medium" }}
                   >

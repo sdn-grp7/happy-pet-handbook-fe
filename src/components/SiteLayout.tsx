@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
-  { to: "/", label: "Home" },
   { to: "/basics", label: "Basics" },
   { to: "/nutrition", label: "Nutrition" },
   { to: "/training", label: "Training" },
@@ -38,7 +37,7 @@ export function SiteLayout() {
                 <DropdownMenuItem asChild key={item.to}>
                   <Link
                     to={item.to}
-                    activeOptions={{ exact: item.to === "/" }}
+                    activeOptions={{ exact: true }}
                     className="w-full cursor-pointer"
                     activeProps={{ className: "w-full cursor-pointer bg-muted font-medium" }}
                   >
@@ -57,7 +56,7 @@ export function SiteLayout() {
         <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} PawPath. Made with love for pets and their people.</p>
           <div className="flex flex-wrap gap-4 justify-center">
-            {navItems.slice(1).map((i) => (
+            {navItems.map((i) => (
               <Link key={i.to} to={i.to} className="hover:text-foreground transition-colors">{i.label}</Link>
             ))}
           </div>

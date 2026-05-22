@@ -13,6 +13,7 @@ import { Route as TrainingRouteImport } from './routes/training'
 import { Route as NutritionRouteImport } from './routes/nutrition'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CommunityRouteImport } from './routes/community'
 import { Route as BasicsRouteImport } from './routes/basics'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -36,6 +37,11 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunityRoute = CommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BasicsRoute = BasicsRouteImport.update({
   id: '/basics',
   path: '/basics',
@@ -50,6 +56,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/basics': typeof BasicsRoute
+  '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/health': typeof HealthRoute
   '/nutrition': typeof NutritionRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/basics': typeof BasicsRoute
+  '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/health': typeof HealthRoute
   '/nutrition': typeof NutritionRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/basics': typeof BasicsRoute
+  '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/health': typeof HealthRoute
   '/nutrition': typeof NutritionRoute
@@ -77,16 +86,25 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/basics'
+    | '/community'
     | '/contact'
     | '/health'
     | '/nutrition'
     | '/training'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/basics' | '/contact' | '/health' | '/nutrition' | '/training'
+  to:
+    | '/'
+    | '/basics'
+    | '/community'
+    | '/contact'
+    | '/health'
+    | '/nutrition'
+    | '/training'
   id:
     | '__root__'
     | '/'
     | '/basics'
+    | '/community'
     | '/contact'
     | '/health'
     | '/nutrition'
@@ -96,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BasicsRoute: typeof BasicsRoute
+  CommunityRoute: typeof CommunityRoute
   ContactRoute: typeof ContactRoute
   HealthRoute: typeof HealthRoute
   NutritionRoute: typeof NutritionRoute
@@ -132,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/community': {
+      id: '/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof CommunityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/basics': {
       id: '/basics'
       path: '/basics'
@@ -152,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BasicsRoute: BasicsRoute,
+  CommunityRoute: CommunityRoute,
   ContactRoute: ContactRoute,
   HealthRoute: HealthRoute,
   NutritionRoute: NutritionRoute,

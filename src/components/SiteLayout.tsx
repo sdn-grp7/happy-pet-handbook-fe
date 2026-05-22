@@ -55,11 +55,6 @@ export function SiteLayout() {
       <footer className="border-t border-border bg-muted/40">
         <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} PawPath. Made with love for pets and their people.</p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            {navItems.map((i) => (
-              <Link key={i.to} to={i.to} className="hover:text-foreground transition-colors">{i.label}</Link>
-            ))}
-          </div>
         </div>
       </footer>
     </div>

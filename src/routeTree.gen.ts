@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrainingRouteImport } from './routes/training'
 import { Route as NutritionRouteImport } from './routes/nutrition'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CommunityRouteImport } from './routes/community'
@@ -25,6 +26,11 @@ const TrainingRoute = TrainingRouteImport.update({
 const NutritionRoute = NutritionRouteImport.update({
   id: '/nutrition',
   path: '/nutrition',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/health': typeof HealthRoute
+  '/map': typeof MapRoute
   '/nutrition': typeof NutritionRoute
   '/training': typeof TrainingRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/health': typeof HealthRoute
+  '/map': typeof MapRoute
   '/nutrition': typeof NutritionRoute
   '/training': typeof TrainingRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/health': typeof HealthRoute
+  '/map': typeof MapRoute
   '/nutrition': typeof NutritionRoute
   '/training': typeof TrainingRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/health'
+    | '/map'
     | '/nutrition'
     | '/training'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/health'
+    | '/map'
     | '/nutrition'
     | '/training'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/health'
+    | '/map'
     | '/nutrition'
     | '/training'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   CommunityRoute: typeof CommunityRoute
   ContactRoute: typeof ContactRoute
   HealthRoute: typeof HealthRoute
+  MapRoute: typeof MapRoute
   NutritionRoute: typeof NutritionRoute
   TrainingRoute: typeof TrainingRoute
 }
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/nutrition'
       fullPath: '/nutrition'
       preLoaderRoute: typeof NutritionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -181,19 +201,10 @@ const rootRouteChildren: RootRouteChildren = {
   CommunityRoute: CommunityRoute,
   ContactRoute: ContactRoute,
   HealthRoute: HealthRoute,
+  MapRoute: MapRoute,
   NutritionRoute: NutritionRoute,
   TrainingRoute: TrainingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

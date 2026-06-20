@@ -1,4 +1,4 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { PawPrint, Menu } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,7 +23,10 @@ export function SiteLayout() {
       <header className="sticky top-0 z-40 backdrop-blur bg-background/80 border-b border-border">
         <nav className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 font-semibold text-lg">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full text-primary-foreground" style={{ background: "var(--gradient-warm)" }}>
+            <span
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-primary-foreground"
+              style={{ background: "var(--gradient-warm)" }}
+            >
               <PawPrint className="h-5 w-5" />
             </span>
             PawPath
@@ -36,14 +39,14 @@ export function SiteLayout() {
             <DropdownMenuContent align="end" className="w-48">
               {navItems.map((item) => (
                 <DropdownMenuItem asChild key={item.to}>
-                  <Link
+                  <NavLink
                     to={item.to}
-                    activeOptions={{ exact: true }}
-                    className="w-full cursor-pointer"
-                    activeProps={{ className: "w-full cursor-pointer bg-muted font-medium" }}
+                    className={({ isActive }) =>
+                      `w-full cursor-pointer${isActive ? " bg-muted font-medium" : ""}`
+                    }
                   >
                     {item.label}
-                  </Link>
+                  </NavLink>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

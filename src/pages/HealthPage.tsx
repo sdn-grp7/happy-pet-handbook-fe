@@ -1,21 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { PageHero, Article, Section, Checklist, TipCard } from "@/components/GuideBlocks";
+import { PageMeta } from "@/components/PageMeta";
 
-export const Route = createFileRoute("/health")({
-  head: () => ({
-    meta: [
-      { title: "Health & Wellness — PawPath" },
-      { name: "description", content: "Vet visits, grooming, exercise, and how to spot trouble early." },
-      { property: "og:title", content: "Pet Health & Wellness" },
-      { property: "og:description", content: "Vet visits, grooming, exercise, and how to spot trouble early." },
-    ],
-  }),
-  component: HealthPage,
-});
-
-function HealthPage() {
+export function HealthPage() {
   return (
     <>
+      <PageMeta
+        title="Health & Wellness — PawPath"
+        description="Vet visits, grooming, exercise, and how to spot trouble early."
+        ogTitle="Pet Health & Wellness"
+        ogDescription="Vet visits, grooming, exercise, and how to spot trouble early."
+      />
       <PageHero
         eyebrow="Chapter 4"
         title="Health & Wellness"
@@ -24,8 +18,8 @@ function HealthPage() {
       <Article>
         <Section title="Regular vet care">
           <p>
-            Schedule a wellness check at least once a year — twice a year for seniors. Keep vaccinations,
-            parasite prevention, and dental care up to date. Find a vet you trust before you actually need one.
+            Schedule a wellness check at least once a year — twice a year for seniors. Keep vaccinations, parasite
+            prevention, and dental care up to date. Find a vet you trust before you actually need one.
           </p>
           <Checklist
             items={[
@@ -39,15 +33,15 @@ function HealthPage() {
 
         <Section title="Exercise and enrichment">
           <p>
-            Physical activity keeps muscles strong and minds sharp. Dogs need daily walks and play; cats need
-            climbing, hunting games, and scratching surfaces. A bored pet is often a destructive one.
+            Physical activity keeps muscles strong and minds sharp. Dogs need daily walks and play; cats need climbing,
+            hunting games, and scratching surfaces. A bored pet is often a destructive one.
           </p>
         </Section>
 
         <Section title="Spot trouble early">
           <p>
-            You know your pet best. Watch for changes in appetite, energy, bathroom habits, or behavior. When
-            something feels off, call your vet — even if you can't explain why. Early visits save lives and money.
+            You know your pet best. Watch for changes in appetite, energy, bathroom habits, or behavior. When something
+            feels off, call your vet — even if you can't explain why. Early visits save lives and money.
           </p>
         </Section>
 

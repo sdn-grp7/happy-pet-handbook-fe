@@ -1,19 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Heart, MessageCircle, Send, Sparkles, Users, TrendingUp, PawPrint } from "lucide-react";
 import { PageHero } from "@/components/GuideBlocks";
-
-export const Route = createFileRoute("/community")({
-  head: () => ({
-    meta: [
-      { title: "Community — PawPath" },
-      { name: "description", content: "Share stories, ask questions, and connect with fellow pet parents in the PawPath community." },
-      { property: "og:title", content: "PawPath Community" },
-      { property: "og:description", content: "A friendly forum for pet parents to share, learn, and support each other." },
-    ],
-  }),
-  component: CommunityPage,
-});
+import { PageMeta } from "@/components/PageMeta";
 
 type Post = {
   id: string;
@@ -77,7 +65,6 @@ const seedPosts: Post[] = [
 const STORAGE_KEY = "pawpath-community-v1";
 
 function loadPosts(): Post[] {
-  if (typeof window === "undefined") return seedPosts;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return seedPosts;
@@ -98,7 +85,7 @@ function timeAgo(ts: number) {
   return `${d}d ago`;
 }
 
-function CommunityPage() {
+export function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>(seedPosts);
   const [hydrated, setHydrated] = useState(false);
   const [filter, setFilter] = useState<(typeof TOPICS)[number] | "All">("All");
@@ -116,7 +103,10 @@ function CommunityPage() {
   }, [posts, hydrated]);
 
   const filtered = useMemo(
-    () => (filter === "All" ? posts : posts.filter((p) => p.topic === filter)).slice().sort((a, b) => b.createdAt - a.createdAt),
+    () =>
+      (filter === "All" ? posts : posts.filter((p) => p.topic === filter))
+        .slice()
+        .sort((a, b) => b.createdAt - a.createdAt),
     [posts, filter],
   );
 
@@ -150,7 +140,9 @@ function CommunityPage() {
   };
 
   const toggleLike = (id: string) =>
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)));
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)),
+    );
 
   const submitComment = (postId: string) => {
     const body = (commentDrafts[postId] || "").trim();
@@ -158,7 +150,13 @@ function CommunityPage() {
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
-          ? { ...p, comments: [...p.comments, { id: `c${Date.now()}`, author: draft.author.trim() || "Guest", body, createdAt: Date.now() }] }
+          ? {
+              ...p,
+              comments: [
+                ...p.comments,
+                { id: `c${Date.now()}`, author: draft.author.trim() || "Guest", body, createdAt: Date.now() },
+              ],
+            }
           : p,
       ),
     );
@@ -167,6 +165,12 @@ function CommunityPage() {
 
   return (
     <>
+      <PageMeta
+        title="Community — PawPath"
+        description="Share stories, ask questions, and connect with fellow pet parents in the PawPath community."
+        ogTitle="PawPath Community"
+        ogDescription="A friendly forum for pet parents to share, learn, and support each other."
+      />
       <PageHero
         eyebrow="Community"
         title="Where pet parents gather"
@@ -180,8 +184,14 @@ function CommunityPage() {
             { icon: MessageCircle, label: "Discussions", value: stats.posts.toLocaleString() },
             { icon: Heart, label: "Hearts shared", value: stats.likes.toLocaleString() },
           ].map(({ icon: Icon, label, value }) => (
-            <div key={label} className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4 shadow-[var(--shadow-card)]">
-              <div className="h-11 w-11 rounded-xl flex items-center justify-center text-primary-foreground" style={{ background: "var(--gradient-warm)" }}>
+            <div
+              key={label}
+              className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4 shadow-[var(--shadow-card)]"
+            >
+              <div
+                className="h-11 w-11 rounded-xl flex items-center justify-center text-primary-foreground"
+                style={{ background: "var(--gradient-warm)" }}
+              >
                 <Icon className="h-5 w-5" />
               </div>
               <div>
@@ -194,7 +204,10 @@ function CommunityPage() {
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-8">
           <div>
-            <form onSubmit={submitPost} className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] mb-8">
+            <form
+              onSubmit={submitPost}
+              className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] mb-8"
+            >
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <h2 className="font-semibold">Start a discussion</h2>
@@ -212,7 +225,9 @@ function CommunityPage() {
                   onChange={(e) => setDraft({ ...draft, topic: e.target.value as (typeof TOPICS)[number] })}
                 >
                   {TOPICS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -266,13 +281,18 @@ function CommunityPage() {
               {filtered.map((post) => (
                 <article key={post.id} className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full flex items-center justify-center text-lg" style={{ background: "var(--gradient-soft)" }}>
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center text-lg"
+                      style={{ background: "var(--gradient-soft)" }}
+                    >
                       <span aria-hidden>{post.avatar}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{post.author}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-accent/60 text-accent-foreground">{post.topic}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-accent/60 text-accent-foreground">
+                          {post.topic}
+                        </span>
                         <span className="text-xs text-muted-foreground">· {timeAgo(post.createdAt)}</span>
                       </div>
                     </div>
@@ -353,7 +373,9 @@ function CommunityPage() {
                         className="w-full flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted transition"
                       >
                         <span className="text-foreground">#{t.toLowerCase()}</span>
-                        <span className="text-xs text-muted-foreground">{count} post{count === 1 ? "" : "s"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {count} post{count === 1 ? "" : "s"}
+                        </span>
                       </button>
                     </li>
                   );
@@ -361,7 +383,10 @@ function CommunityPage() {
               </ul>
             </div>
 
-            <div className="rounded-2xl p-5 text-primary-foreground shadow-[var(--shadow-soft)]" style={{ background: "var(--gradient-warm)" }}>
+            <div
+              className="rounded-2xl p-5 text-primary-foreground shadow-[var(--shadow-soft)]"
+              style={{ background: "var(--gradient-warm)" }}
+            >
               <PawPrint className="h-6 w-6" />
               <h3 className="mt-3 font-semibold text-lg">Community guidelines</h3>
               <ul className="mt-2 space-y-1.5 text-sm/relaxed opacity-95">

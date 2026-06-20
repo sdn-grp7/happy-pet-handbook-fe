@@ -1,19 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { MapPin, Phone, Star, Search, Stethoscope, Scissors, Bone, Home } from "lucide-react";
 import { PageHero } from "@/components/GuideBlocks";
-
-export const Route = createFileRoute("/map")({
-  head: () => ({
-    meta: [
-      { title: "Pet Care Map — PawPath" },
-      { name: "description", content: "Find vets, groomers, pet stores, and boarding nearby on the PawPath pet care map." },
-      { property: "og:title", content: "Pet Care Map — PawPath" },
-      { property: "og:description", content: "Discover trusted pet care places near you." },
-    ],
-  }),
-  component: MapPage,
-});
+import { PageMeta } from "@/components/PageMeta";
 
 type Category = "Vet" | "Groomer" | "Store" | "Boarding";
 
@@ -24,7 +12,6 @@ type Place = {
   address: string;
   phone: string;
   rating: number;
-  // normalized 0-100 coords for the placeholder map
   x: number;
   y: number;
 };
@@ -49,7 +36,7 @@ const PLACES: Place[] = [
 
 const CATEGORIES: ("All" | Category)[] = ["All", "Vet", "Groomer", "Store", "Boarding"];
 
-function MapPage() {
+export function MapPage() {
   const [filter, setFilter] = useState<(typeof CATEGORIES)[number]>("All");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -64,6 +51,12 @@ function MapPage() {
 
   return (
     <>
+      <PageMeta
+        title="Pet Care Map — PawPath"
+        description="Find vets, groomers, pet stores, and boarding nearby on the PawPath pet care map."
+        ogTitle="Pet Care Map — PawPath"
+        ogDescription="Discover trusted pet care places near you."
+      />
       <PageHero
         eyebrow="Find Care"
         title="Pet care places near you"
@@ -183,7 +176,10 @@ function MapPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white shrink-0" style={{ background: meta.color }}>
+                    <div
+                      className="h-9 w-9 rounded-lg flex items-center justify-center text-white shrink-0"
+                      style={{ background: meta.color }}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -195,7 +191,9 @@ function MapPage() {
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 truncate">{p.address}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{p.category} · {p.phone}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {p.category} · {p.phone}
+                      </div>
                     </div>
                   </div>
                 </button>

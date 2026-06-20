@@ -1,25 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PageHero } from "@/components/GuideBlocks";
-import { Mail, MessageCircle, Heart } from "lucide-react";
 import { useState } from "react";
+import { PageHero } from "@/components/GuideBlocks";
+import { PageMeta } from "@/components/PageMeta";
+import { Mail, MessageCircle, Heart } from "lucide-react";
 
-export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact — PawPath" },
-      { name: "description", content: "Have a question about raising your pet? Send us a note." },
-      { property: "og:title", content: "Contact PawPath" },
-      { property: "og:description", content: "Have a question about raising your pet? Send us a note." },
-    ],
-  }),
-  component: ContactPage,
-});
-
-function ContactPage() {
+export function ContactPage() {
   const [sent, setSent] = useState(false);
 
   return (
     <>
+      <PageMeta
+        title="Contact — PawPath"
+        description="Have a question about raising your pet? Send us a note."
+        ogTitle="Contact PawPath"
+        ogDescription="Have a question about raising your pet? Send us a note."
+      />
       <PageHero
         eyebrow="Say hello"
         title="Ask us anything"
@@ -42,16 +36,36 @@ function ContactPage() {
               className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-[var(--shadow-card)] space-y-4"
             >
               <div>
-                <label className="text-sm font-medium" htmlFor="name">Your name</label>
-                <input id="name" required className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
+                <label className="text-sm font-medium" htmlFor="name">
+                  Your name
+                </label>
+                <input
+                  id="name"
+                  required
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div>
-                <label className="text-sm font-medium" htmlFor="email">Email</label>
-                <input id="email" type="email" required className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
+                <label className="text-sm font-medium" htmlFor="email">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div>
-                <label className="text-sm font-medium" htmlFor="message">Your question</label>
-                <textarea id="message" required rows={5} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
+                <label className="text-sm font-medium" htmlFor="message">
+                  Your question
+                </label>
+                <textarea
+                  id="message"
+                  required
+                  rows={5}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <button
                 type="submit"

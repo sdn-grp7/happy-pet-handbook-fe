@@ -1,21 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { PageHero, Article, Section, Checklist, TipCard } from "@/components/GuideBlocks";
+import { PageMeta } from "@/components/PageMeta";
 
-export const Route = createFileRoute("/basics")({
-  head: () => ({
-    meta: [
-      { title: "The Basics — PawPath" },
-      { name: "description", content: "Welcome your new pet home: safe space, routine, bonding, and first-week essentials." },
-      { property: "og:title", content: "The Basics of Raising a Pet" },
-      { property: "og:description", content: "Set up a safe home, build trust, and create a calm routine from day one." },
-    ],
-  }),
-  component: BasicsPage,
-});
-
-function BasicsPage() {
+export function BasicsPage() {
   return (
     <>
+      <PageMeta
+        title="The Basics — PawPath"
+        description="Welcome your new pet home: safe space, routine, bonding, and first-week essentials."
+        ogTitle="The Basics of Raising a Pet"
+        ogDescription="Set up a safe home, build trust, and create a calm routine from day one."
+      />
       <PageHero
         eyebrow="Chapter 1"
         title="The Basics"
@@ -25,8 +19,8 @@ function BasicsPage() {
         <Section title="Prepare a safe space">
           <p>
             Before your pet arrives, set aside one quiet room or corner that belongs to them. Add a soft bed, fresh
-            water, a couple of toys, and the food they are already used to. A predictable space reduces stress and
-            helps them settle in faster.
+            water, a couple of toys, and the food they are already used to. A predictable space reduces stress and helps
+            them settle in faster.
           </p>
           <Checklist
             items={[
@@ -40,16 +34,16 @@ function BasicsPage() {
 
         <Section title="Build trust slowly">
           <p>
-            Let your pet come to you. Sit on the floor, speak softly, and offer treats from an open hand. Avoid
-            picking them up in the first days unless necessary. Trust is built in small moments — and once earned,
-            it lasts a lifetime.
+            Let your pet come to you. Sit on the floor, speak softly, and offer treats from an open hand. Avoid picking
+            them up in the first days unless necessary. Trust is built in small moments — and once earned, it lasts a
+            lifetime.
           </p>
         </Section>
 
         <Section title="Create a daily routine">
           <p>
-            Pets thrive on predictability. Try to feed, walk, play, and rest at roughly the same times each day.
-            Routine reduces anxiety and prevents most behavior problems before they start.
+            Pets thrive on predictability. Try to feed, walk, play, and rest at roughly the same times each day. Routine
+            reduces anxiety and prevents most behavior problems before they start.
           </p>
         </Section>
 

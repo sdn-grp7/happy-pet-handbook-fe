@@ -1,21 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { PageHero, Article, Section, Checklist, TipCard } from "@/components/GuideBlocks";
+import { PageMeta } from "@/components/PageMeta";
 
-export const Route = createFileRoute("/nutrition")({
-  head: () => ({
-    meta: [
-      { title: "Nutrition — PawPath" },
-      { name: "description", content: "What, when, and how to feed your pet at every life stage." },
-      { property: "og:title", content: "Pet Nutrition Guide" },
-      { property: "og:description", content: "What, when, and how to feed your pet at every life stage." },
-    ],
-  }),
-  component: NutritionPage,
-});
-
-function NutritionPage() {
+export function NutritionPage() {
   return (
     <>
+      <PageMeta
+        title="Nutrition — PawPath"
+        description="What, when, and how to feed your pet at every life stage."
+        ogTitle="Pet Nutrition Guide"
+        ogDescription="What, when, and how to feed your pet at every life stage."
+      />
       <PageHero
         eyebrow="Chapter 2"
         title="Nutrition"
@@ -24,17 +18,17 @@ function NutritionPage() {
       <Article>
         <Section title="Choose food for their life stage">
           <p>
-            Puppies and kittens need calorie-dense, growth-formula food. Adults need balanced maintenance diets.
-            Seniors often need fewer calories and more joint support. Always read the label — look for a complete
-            and balanced statement from a recognized authority (AAFCO, FEDIAF).
+            Puppies and kittens need calorie-dense, growth-formula food. Adults need balanced maintenance diets. Seniors
+            often need fewer calories and more joint support. Always read the label — look for a complete and balanced
+            statement from a recognized authority (AAFCO, FEDIAF).
           </p>
         </Section>
 
         <Section title="Portion and schedule">
           <p>
-            Use the feeding guide on the bag as a starting point, then adjust based on body condition — you should
-            feel ribs easily but not see them. Most adult dogs eat twice a day; cats often prefer smaller, more
-            frequent meals.
+            Use the feeding guide on the bag as a starting point, then adjust based on body condition — you should feel
+            ribs easily but not see them. Most adult dogs eat twice a day; cats often prefer smaller, more frequent
+            meals.
           </p>
           <Checklist
             items={[

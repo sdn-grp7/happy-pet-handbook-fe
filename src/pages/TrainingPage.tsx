@@ -1,21 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { PageHero, Article, Section, Checklist, TipCard } from "@/components/GuideBlocks";
+import { PageMeta } from "@/components/PageMeta";
 
-export const Route = createFileRoute("/training")({
-  head: () => ({
-    meta: [
-      { title: "Training — PawPath" },
-      { name: "description", content: "Gentle, positive training that builds confident, well-behaved pets." },
-      { property: "og:title", content: "Positive Pet Training" },
-      { property: "og:description", content: "Gentle, positive training that builds confident, well-behaved pets." },
-    ],
-  }),
-  component: TrainingPage,
-});
-
-function TrainingPage() {
+export function TrainingPage() {
   return (
     <>
+      <PageMeta
+        title="Training — PawPath"
+        description="Gentle, positive training that builds confident, well-behaved pets."
+        ogTitle="Positive Pet Training"
+        ogDescription="Gentle, positive training that builds confident, well-behaved pets."
+      />
       <PageHero
         eyebrow="Chapter 3"
         title="Training"
@@ -24,16 +18,16 @@ function TrainingPage() {
       <Article>
         <Section title="Reward what you want to see">
           <p>
-            Positive reinforcement is the gold standard. When your pet does something right — sits calmly, comes
-            when called, uses the litter box — reward immediately with a treat, praise, or play. Behavior that gets
-            rewarded gets repeated.
+            Positive reinforcement is the gold standard. When your pet does something right — sits calmly, comes when
+            called, uses the litter box — reward immediately with a treat, praise, or play. Behavior that gets rewarded
+            gets repeated.
           </p>
         </Section>
 
         <Section title="Keep sessions short and fun">
           <p>
-            Five-minute sessions, two or three times a day, beat one long lecture. End on a success, even if it's
-            small. Pets, like kids, learn best when they're enjoying themselves.
+            Five-minute sessions, two or three times a day, beat one long lecture. End on a success, even if it's small.
+            Pets, like kids, learn best when they're enjoying themselves.
           </p>
           <Checklist
             items={[

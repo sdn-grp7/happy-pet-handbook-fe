@@ -1,18 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import heroImage from "@/assets/hero-pets.jpg";
+import { Link } from "react-router-dom";
 import { Heart, BookOpen, Apple, GraduationCap, Stethoscope, ArrowRight } from "lucide-react";
+import { PageMeta } from "@/components/PageMeta";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "PawPath — How to Raise Your Pet" },
-      { name: "description", content: "Friendly, practical guide to raising a happy, healthy pet from day one." },
-      { property: "og:title", content: "PawPath — How to Raise Your Pet" },
-      { property: "og:description", content: "Friendly, practical guide to raising a happy, healthy pet from day one." },
-    ],
-  }),
-  component: Home,
-});
+const heroImage =
+  "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1536&h=1024&fit=crop";
 
 const pillars = [
   { to: "/basics", icon: BookOpen, title: "The Basics", desc: "Set up a safe home and build trust from day one." },
@@ -21,9 +12,15 @@ const pillars = [
   { to: "/health", icon: Stethoscope, title: "Health & Wellness", desc: "Vet visits, grooming, and spotting trouble early." },
 ] as const;
 
-function Home() {
+export function HomePage() {
   return (
     <>
+      <PageMeta
+        title="PawPath — How to Raise Your Pet"
+        description="Friendly, practical guide to raising a happy, healthy pet from day one."
+        ogTitle="PawPath — How to Raise Your Pet"
+        ogDescription="Friendly, practical guide to raising a happy, healthy pet from day one."
+      />
       <section className="relative overflow-hidden" style={{ background: "var(--gradient-soft)" }}>
         <div className="max-w-6xl mx-auto px-6 py-20 md:py-28 grid md:grid-cols-2 gap-12 items-center">
           <div>
@@ -31,22 +28,42 @@ function Home() {
               <Heart className="h-3.5 w-3.5" /> A guide made with love
             </span>
             <h1 className="mt-5 text-4xl md:text-6xl font-bold tracking-tight leading-tight">
-              How to raise a happy, <span style={{ background: "var(--gradient-warm)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>healthy pet</span>
+              How to raise a happy,{" "}
+              <span
+                style={{
+                  background: "var(--gradient-warm)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                healthy pet
+              </span>
             </h1>
             <p className="mt-5 text-lg text-muted-foreground max-w-lg">
-              Everything a new pet parent needs — from the first day home to lifelong care. Simple steps, kind methods, expert-backed tips.
+              Everything a new pet parent needs — from the first day home to lifelong care. Simple steps, kind methods,
+              expert-backed tips.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/basics" className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-primary-foreground font-medium shadow-[var(--shadow-soft)] hover:opacity-95 transition" style={{ background: "var(--gradient-warm)" }}>
+              <Link
+                to="/basics"
+                className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-primary-foreground font-medium shadow-[var(--shadow-soft)] hover:opacity-95 transition"
+                style={{ background: "var(--gradient-warm)" }}
+              >
                 Start the guide <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link to="/contact" className="inline-flex items-center gap-2 rounded-full px-6 py-3 bg-card border border-border font-medium hover:bg-muted transition">
+              <Link
+                to="/contact"
+                className="inline-flex items-center gap-2 rounded-full px-6 py-3 bg-card border border-border font-medium hover:bg-muted transition"
+              >
                 Ask a question
               </Link>
             </div>
           </div>
           <div className="relative">
-            <div className="absolute -inset-4 rounded-3xl opacity-30 blur-2xl" style={{ background: "var(--gradient-warm)" }} />
+            <div
+              className="absolute -inset-4 rounded-3xl opacity-30 blur-2xl"
+              style={{ background: "var(--gradient-warm)" }}
+            />
             <img
               src={heroImage}
               alt="A happy golden retriever puppy and curious tabby kitten together"
@@ -65,8 +82,15 @@ function Home() {
         </div>
         <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {pillars.map(({ to, icon: Icon, title, desc }) => (
-            <Link key={to} to={to} className="group rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] hover:-translate-y-1 hover:shadow-[var(--shadow-soft)] transition">
-              <div className="h-11 w-11 rounded-xl flex items-center justify-center text-primary-foreground" style={{ background: "var(--gradient-warm)" }}>
+            <Link
+              key={to}
+              to={to}
+              className="group rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] hover:-translate-y-1 hover:shadow-[var(--shadow-soft)] transition"
+            >
+              <div
+                className="h-11 w-11 rounded-xl flex items-center justify-center text-primary-foreground"
+                style={{ background: "var(--gradient-warm)" }}
+              >
                 <Icon className="h-5 w-5" />
               </div>
               <h3 className="mt-4 font-semibold text-lg">{title}</h3>

@@ -1,7 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { Heart, MessageCircle, Send, Sparkles, Users, TrendingUp, PawPrint } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  Heart,
+  MessageCircle,
+  Send,
+  Sparkles,
+  Users,
+  TrendingUp,
+  PawPrint,
+  BookMarked,
+} from "lucide-react";
 import { PageHero } from "@/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
+import { LoginPrompt } from "@/components/LoginPrompt";
+import { useAuth } from "@/contexts/AuthContext";
+import { getForumThreads, FORUM_TOPICS } from "@/lib/mockApi";
+import type { ForumThread } from "@/types/modules";
+
+const TOPICS = FORUM_TOPICS;
 
 type Post = {
   id: string;
@@ -13,64 +29,40 @@ type Post = {
   createdAt: number;
   likes: number;
   liked: boolean;
+  promotedToGuide: boolean;
   comments: { id: string; author: string; body: string; createdAt: number }[];
 };
 
-const TOPICS = ["Basics", "Nutrition", "Training", "Health", "Stories"] as const;
+function threadToPost(t: ForumThread): Post {
+  return {
+    id: t.id,
+    author: t.authorName,
+    avatar: t.avatar,
+    topic: t.topic,
+    title: t.title,
+    body: t.body,
+    createdAt: new Date(t.createdAt).getTime(),
+    likes: t.upvotes,
+    liked: t.upvoted,
+    promotedToGuide: t.promotedToGuide,
+    comments: t.replies.map((r) => ({
+      id: r.id,
+      author: r.authorName,
+      body: r.body,
+      createdAt: new Date(r.createdAt).getTime(),
+    })),
+  };
+}
 
-const seedPosts: Post[] = [
-  {
-    id: "p1",
-    author: "Maya & Biscuit",
-    avatar: "🐕",
-    topic: "Training",
-    title: "Crate training week 1 — small wins!",
-    body: "Biscuit went from whining for 30 min to settling in under 5. The trick: a frozen Kong and a worn t-shirt. Anyone else have favorite calm-down rituals?",
-    createdAt: Date.now() - 1000 * 60 * 60 * 3,
-    likes: 24,
-    liked: false,
-    comments: [
-      { id: "c1", author: "Leo", body: "Lavender spray near the crate worked wonders for us.", createdAt: Date.now() - 1000 * 60 * 60 * 2 },
-      { id: "c2", author: "Priya", body: "Same — frozen Kong is magic. Try peanut butter + banana.", createdAt: Date.now() - 1000 * 60 * 30 },
-    ],
-  },
-  {
-    id: "p2",
-    author: "Tom",
-    avatar: "🐈",
-    topic: "Nutrition",
-    title: "Switching kitten to adult food — when?",
-    body: "Vet said around 12 months for my domestic shorthair. Curious how others timed the transition and what brands you trust.",
-    createdAt: Date.now() - 1000 * 60 * 60 * 26,
-    likes: 11,
-    liked: false,
-    comments: [],
-  },
-  {
-    id: "p3",
-    author: "Sofia",
-    avatar: "🐾",
-    topic: "Stories",
-    title: "Our rescue's first beach day",
-    body: "Two years of patience and Coco finally put paws in sand. She didn't love the waves but the zoomies after were everything.",
-    createdAt: Date.now() - 1000 * 60 * 60 * 50,
-    likes: 87,
-    liked: true,
-    comments: [
-      { id: "c3", author: "Maya & Biscuit", body: "This made my whole day 🥹", createdAt: Date.now() - 1000 * 60 * 60 * 40 },
-    ],
-  },
-];
+const STORAGE_KEY = "pawpath-forum-v1";
 
-const STORAGE_KEY = "pawpath-community-v1";
-
-function loadPosts(): Post[] {
+function loadPosts(fallback: Post[]): Post[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedPosts;
+    if (!raw) return fallback;
     return JSON.parse(raw) as Post[];
   } catch {
-    return seedPosts;
+    return fallback;
   }
 }
 
@@ -86,15 +78,25 @@ function timeAgo(ts: number) {
 }
 
 export function CommunityPage() {
-  const [posts, setPosts] = useState<Post[]>(seedPosts);
+  const { user } = useAuth();
+  const canInteract = Boolean(user);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [filter, setFilter] = useState<(typeof TOPICS)[number] | "All">("All");
-  const [draft, setDraft] = useState({ author: "", topic: "Basics" as (typeof TOPICS)[number], title: "", body: "" });
+  const [draft, setDraft] = useState({
+    author: "",
+    topic: "Basics" as (typeof TOPICS)[number],
+    title: "",
+    body: "",
+  });
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setPosts(loadPosts());
-    setHydrated(true);
+    getForumThreads().then((threads) => {
+      const mapped = threads.map(threadToPost);
+      setPosts(loadPosts(mapped));
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -122,10 +124,11 @@ export function CommunityPage() {
 
   const submitPost = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!draft.author.trim() || !draft.title.trim() || !draft.body.trim()) return;
+    if (!canInteract || !user) return;
+    if (!draft.title.trim() || !draft.body.trim()) return;
     const post: Post = {
       id: `p${Date.now()}`,
-      author: draft.author.trim(),
+      author: user.name,
       avatar: "🐾",
       topic: draft.topic,
       title: draft.title.trim(),
@@ -133,18 +136,24 @@ export function CommunityPage() {
       createdAt: Date.now(),
       likes: 0,
       liked: false,
+      promotedToGuide: false,
       comments: [],
     };
     setPosts((prev) => [post, ...prev]);
-    setDraft({ author: draft.author, topic: draft.topic, title: "", body: "" });
+    setDraft({ author: user.name, topic: draft.topic, title: "", body: "" });
   };
 
-  const toggleLike = (id: string) =>
+  const toggleLike = (id: string) => {
+    if (!canInteract) return;
     setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)),
+      prev.map((p) =>
+        p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p,
+      ),
     );
+  };
 
   const submitComment = (postId: string) => {
+    if (!canInteract || !user) return;
     const body = (commentDrafts[postId] || "").trim();
     if (!body) return;
     setPosts((prev) =>
@@ -154,7 +163,12 @@ export function CommunityPage() {
               ...p,
               comments: [
                 ...p.comments,
-                { id: `c${Date.now()}`, author: draft.author.trim() || "Guest", body, createdAt: Date.now() },
+                {
+                  id: `c${Date.now()}`,
+                  author: user.name,
+                  body,
+                  createdAt: Date.now(),
+                },
               ],
             }
           : p,
@@ -166,15 +180,19 @@ export function CommunityPage() {
   return (
     <>
       <PageMeta
-        title="Community — PawPath"
-        description="Share stories, ask questions, and connect with fellow pet parents in the PawPath community."
-        ogTitle="PawPath Community"
+        title="Forum — PawPath"
+        description="Threads and replies, Q&A community, upvotes, and promote to guide."
+        ogTitle="PawPath Forum"
         ogDescription="A friendly forum for pet parents to share, learn, and support each other."
       />
       <PageHero
-        eyebrow="Community"
+        eyebrow="Forum"
         title="Where pet parents gather"
-        subtitle="Trade tips, celebrate milestones, and find your people. Be kind, stay curious."
+        subtitle={
+          canInteract
+            ? "Post questions, reply, and upvote helpful threads."
+            : "Browse discussions freely — sign in to post, reply, and upvote."
+        }
       />
 
       <section className="max-w-6xl mx-auto px-6 py-12">
@@ -204,25 +222,21 @@ export function CommunityPage() {
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-8">
           <div>
-            <form
-              onSubmit={submitPost}
-              className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] mb-8"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h2 className="font-semibold">Start a discussion</h2>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <input
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  placeholder="Your name"
-                  value={draft.author}
-                  onChange={(e) => setDraft({ ...draft, author: e.target.value })}
-                />
+            {canInteract ? (
+              <form
+                onSubmit={submitPost}
+                className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] mb-8"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h2 className="font-semibold">Start a discussion</h2>
+                </div>
                 <select
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   value={draft.topic}
-                  onChange={(e) => setDraft({ ...draft, topic: e.target.value as (typeof TOPICS)[number] })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, topic: e.target.value as (typeof TOPICS)[number] })
+                  }
                 >
                   {TOPICS.map((t) => (
                     <option key={t} value={t}>
@@ -230,31 +244,37 @@ export function CommunityPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <input
-                className="mt-3 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder="Give your post a title…"
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                <input
+                  className="mt-3 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Give your post a title…"
+                  value={draft.title}
+                  onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                />
+                <textarea
+                  className="mt-3 w-full min-h-[110px] rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Share your story, question, or tip…"
+                  value={draft.body}
+                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+                />
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">Posting as {user!.name}</p>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm text-primary-foreground font-medium shadow-[var(--shadow-soft)] hover:opacity-95 transition disabled:opacity-50"
+                    style={{ background: "var(--gradient-warm)" }}
+                    disabled={!draft.title.trim() || !draft.body.trim()}
+                  >
+                    Post <Send className="h-4 w-4" />
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <LoginPrompt
+                className="mb-8"
+                title="Want to join the conversation?"
+                message="Sign in to start a thread, reply, or upvote posts."
               />
-              <textarea
-                className="mt-3 w-full min-h-[110px] rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder="Share your story, question, or tip…"
-                value={draft.body}
-                onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-              />
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Be respectful — we're all learning together.</p>
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm text-primary-foreground font-medium shadow-[var(--shadow-soft)] hover:opacity-95 transition disabled:opacity-50"
-                  style={{ background: "var(--gradient-warm)" }}
-                  disabled={!draft.author.trim() || !draft.title.trim() || !draft.body.trim()}
-                >
-                  Post <Send className="h-4 w-4" />
-                </button>
-              </div>
-            </form>
+            )}
 
             <div className="flex flex-wrap gap-2 mb-6">
               {(["All", ...TOPICS] as const).map((t) => (
@@ -279,7 +299,10 @@ export function CommunityPage() {
                 </div>
               )}
               {filtered.map((post) => (
-                <article key={post.id} className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+                <article
+                  key={post.id}
+                  className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]"
+                >
                   <div className="flex items-center gap-3">
                     <div
                       className="h-10 w-10 rounded-full flex items-center justify-center text-lg"
@@ -293,25 +316,45 @@ export function CommunityPage() {
                         <span className="text-xs px-2 py-0.5 rounded-full bg-accent/60 text-accent-foreground">
                           {post.topic}
                         </span>
-                        <span className="text-xs text-muted-foreground">· {timeAgo(post.createdAt)}</span>
+                        {post.promotedToGuide && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary inline-flex items-center gap-1">
+                            <BookMarked className="h-3 w-3" /> Promoted to guide
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          · {timeAgo(post.createdAt)}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <h3 className="mt-4 text-lg font-semibold">{post.title}</h3>
-                  <p className="mt-2 text-foreground/85 leading-relaxed whitespace-pre-line">{post.body}</p>
+                  <p className="mt-2 text-foreground/85 leading-relaxed whitespace-pre-line">
+                    {post.body}
+                  </p>
 
                   <div className="mt-4 flex items-center gap-4 text-sm">
-                    <button
-                      onClick={() => toggleLike(post.id)}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition ${
-                        post.liked
-                          ? "bg-primary/10 border-primary/30 text-primary"
-                          : "border-border text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Heart className={`h-4 w-4 ${post.liked ? "fill-current" : ""}`} />
-                      {post.likes}
-                    </button>
+                    {canInteract ? (
+                      <button
+                        onClick={() => toggleLike(post.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border transition ${
+                          post.liked
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${post.liked ? "fill-current" : ""}`} />
+                        {post.likes}
+                      </button>
+                    ) : (
+                      <Link
+                        to="/login"
+                        state={{ from: "/forum" }}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 border border-border text-muted-foreground hover:text-foreground"
+                      >
+                        <Heart className="h-4 w-4" />
+                        {post.likes}
+                      </Link>
+                    )}
                     <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                       <MessageCircle className="h-4 w-4" />
                       {post.comments.length}
@@ -332,26 +375,41 @@ export function CommunityPage() {
                     </ul>
                   )}
 
-                  <div className="mt-4 flex gap-2">
-                    <input
-                      className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                      placeholder="Write a kind reply…"
-                      value={commentDrafts[post.id] || ""}
-                      onChange={(e) => setCommentDrafts((d) => ({ ...d, [post.id]: e.target.value }))}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          submitComment(post.id);
+                  {canInteract ? (
+                    <div className="mt-4 flex gap-2">
+                      <input
+                        className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        placeholder="Write a kind reply…"
+                        value={commentDrafts[post.id] || ""}
+                        onChange={(e) =>
+                          setCommentDrafts((d) => ({ ...d, [post.id]: e.target.value }))
                         }
-                      }}
-                    />
-                    <button
-                      onClick={() => submitComment(post.id)}
-                      className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80 transition"
-                    >
-                      Reply
-                    </button>
-                  </div>
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            submitComment(post.id);
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => submitComment(post.id)}
+                        className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm bg-secondary text-secondary-foreground hover:bg-secondary/80 transition"
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-xs text-muted-foreground">
+                      <Link
+                        to="/login"
+                        state={{ from: "/forum" }}
+                        className="text-primary hover:underline"
+                      >
+                        Sign in
+                      </Link>{" "}
+                      to reply
+                    </p>
+                  )}
                 </article>
               ))}
             </div>

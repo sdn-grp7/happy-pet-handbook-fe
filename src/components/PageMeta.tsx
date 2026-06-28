@@ -23,7 +23,8 @@ export function PageMeta({ title, description, ogTitle, ogDescription }: PageMet
     document.title = title;
     if (description) setMeta("description", description);
     if (ogTitle) setMeta("og:title", ogTitle, true);
-    if (ogDescription || description) setMeta("og:description", ogDescription || description || "", true);
+    if (ogDescription || description)
+      setMeta("og:description", ogDescription || description || "", true);
   }, [title, description, ogTitle, ogDescription]);
 
   return null;

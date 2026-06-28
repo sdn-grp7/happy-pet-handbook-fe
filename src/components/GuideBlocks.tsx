@@ -1,10 +1,20 @@
 import { ReactNode } from "react";
 
-export function PageHero({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+export function PageHero({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+}) {
   return (
     <section style={{ background: "var(--gradient-soft)" }} className="border-b border-border">
       <div className="max-w-4xl mx-auto px-6 py-16 md:py-20 text-center">
-        <span className="text-xs font-medium uppercase tracking-widest text-primary">{eyebrow}</span>
+        <span className="text-xs font-medium uppercase tracking-widest text-primary">
+          {eyebrow}
+        </span>
         <h1 className="mt-3 text-4xl md:text-5xl font-bold tracking-tight">{title}</h1>
         <p className="mt-4 text-lg text-muted-foreground">{subtitle}</p>
       </div>

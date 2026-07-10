@@ -1,16 +1,19 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/features/auth/contexts/AuthContext";
+import { I18nProvider } from "@/i18n/I18nContext";
 import App from "./App";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </I18nProvider>
     </BrowserRouter>
   </StrictMode>,
 );

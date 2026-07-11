@@ -26,8 +26,8 @@ type GoongMapProps = {
   className?: string;
 };
 
-const DEFAULT_CENTER: [number, number] = [106.6938, 10.785];
-const DEFAULT_ZOOM = 11;
+const DEFAULT_CENTER: [number, number] = [105.46188, 21.02665];
+const DEFAULT_ZOOM = 12;
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=200&h=200&fit=crop&q=80";
 
@@ -221,7 +221,7 @@ export function GoongMap({ markers, selectedId, onSelect, className = "" }: Goon
 
     const bounds = new maplibregl.LngLatBounds();
     markers.forEach((m) => bounds.extend([m.lng, m.lat]));
-    map.fitBounds(bounds as LngLatBoundsLike, { padding: 72, maxZoom: 13, duration: 700 });
+    map.fitBounds(bounds as LngLatBoundsLike, { padding: 72, maxZoom: 12, duration: 700 });
   }, [selectedId, markers]);
 
   if (!mapTilesKey) {

@@ -12,9 +12,9 @@ import type { PostAdoptionCheckIn } from "@/features/post-adoption/types";
 import { useI18n } from "@/i18n/I18nContext";
 
 const STATUS_STYLE: Record<PostAdoptionCheckIn["status"], string> = {
-  scheduled: "bg-amber-500/10 text-amber-700",
-  submitted: "bg-emerald-500/10 text-emerald-700",
-  overdue: "bg-red-500/10 text-red-700",
+  scheduled: "bg-amber-500/10 text-amber-800",
+  submitted: "bg-primary/10 text-primary",
+  overdue: "bg-destructive/10 text-destructive",
 };
 
 export function PostAdoptionPage() {
@@ -80,7 +80,7 @@ export function PostAdoptionPage() {
 
             {c.status === "submitted" && c.healthReport && (
               <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
-                <div className="flex items-center gap-1 text-emerald-700 font-medium mb-1">
+                <div className="flex items-center gap-1 text-primary font-medium mb-1">
                   <CheckCircle2 className="h-4 w-4" /> Submitted
                   {c.submittedAt && (
                     <span className="font-normal text-muted-foreground ml-1">

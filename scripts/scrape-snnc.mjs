@@ -53,30 +53,40 @@ function parseContactFromHtml(html) {
 /** Resolve lat/lng for scraped address via Nominatim (optional). */
 async function geocodeAddress(address) {
   if (!address) return undefined;
-  try {
-    const q = encodeURIComponent(`${address}, Việt Nam`);
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`,
-      {
-        headers: {
-          "User-Agent": "PawPathMockScraper/1.0 (local demo; happy-pet-handbook)",
-          Accept: "application/json",
+  // Prefer shorter, geocodable queries — full alley addresses often fail.
+  const queries = [
+    address,
+    "Cổ Đông, Sơn Tây, Hà Nội, Việt Nam",
+    "Đồng Mô, Sơn Tây, Hà Nội, Việt Nam",
+    "Sơn Tây, Hà Nội, Việt Nam",
+  ];
+  for (const qRaw of queries) {
+    try {
+      const q = encodeURIComponent(qRaw);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=vn&q=${q}`,
+        {
+          headers: {
+            "User-Agent": "PawPathMockScraper/1.0 (local demo; happy-pet-handbook)",
+            Accept: "application/json",
+          },
         },
-      },
-    );
-    if (!res.ok) return undefined;
-    const data = await res.json();
-    if (!data?.[0]) return undefined;
-    return {
-      address,
-      lat: Number(data[0].lat),
-      lng: Number(data[0].lon),
-      x: 0,
-      y: 0,
-    };
-  } catch {
-    return undefined;
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data?.[0]) continue;
+      return {
+        address,
+        lat: Number(data[0].lat),
+        lng: Number(data[0].lon),
+      };
+    } catch {
+      /* try next */
+    }
+    await new Promise((r) => setTimeout(r, 1100));
   }
+  // Fallback: Cổ Đông / Đồng Mô area (OSM near Làng VH các dân tộc VN)
+  return { address, lat: 21.02665, lng: 105.46188 };
 }
 
 function stripHtml(html) {

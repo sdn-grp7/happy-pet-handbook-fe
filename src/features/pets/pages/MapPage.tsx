@@ -9,11 +9,39 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Search } from "lucide-react";
 
-const STATUS_LABEL: Record<PetListing["status"], { label: string; color: string }> = {
-  available: { label: "Available", color: "#10b981" },
-  pending: { label: "Pending pickup", color: "#f59e0b" },
-  adopted: { label: "Adopted", color: "#6b7280" },
+/** Warm PawPath palette — no green. */
+const STATUS_META: Record<PetListing["status"], { color: string }> = {
+  available: { color: "#ea580c" },
+  pending: { color: "#d97706" },
+  adopted: { color: "#78716c" },
 };
+
+function hashSeed(id: string) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * Spread pins that share one shelter point so they don't stack.
+ * Golden-angle spiral ≈ 0.5–4 km around the real pickup (demo only).
+ */
+function spreadAroundShelter(lat: number, lng: number, id: string) {
+  const seed = hashSeed(id);
+  const rank = (seed % 200) + 1;
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  const angle = rank * golden + (seed % 360) * (Math.PI / 180);
+  const radiusDeg = 0.0035 * Math.sqrt(rank); // ~0.4km → ~5km
+  const wobbleLat = ((seed % 97) / 97 - 0.5) * 0.002;
+  const wobbleLng = (((seed >> 8) % 97) / 97 - 0.5) * 0.002;
+  return {
+    lat: lat + Math.sin(angle) * radiusDeg + wobbleLat,
+    lng: lng + Math.cos(angle) * radiusDeg + wobbleLng,
+  };
+}
 
 export function MapPage() {
   const { t } = useI18n();
@@ -38,6 +66,11 @@ export function MapPage() {
       );
   }, [pets, filter, query]);
 
+  const mappable = useMemo(
+    () => places.filter((p) => p.pickup?.lat != null && p.pickup?.lng != null),
+    [places],
+  );
+
   useEffect(() => {
     if (selectedId && !places.some((p) => p.id === selectedId)) {
       setSelectedId(null);
@@ -51,19 +84,22 @@ export function MapPage() {
 
   const mapMarkers: GoongMapMarker[] = useMemo(
     () =>
-      places
-        .filter((p) => p.pickup?.lat != null && p.pickup?.lng != null)
-        .map((p) => ({
+      mappable.map((p) => {
+        const baseLat = p.pickup!.lat!;
+        const baseLng = p.pickup!.lng!;
+        const { lat, lng } = spreadAroundShelter(baseLat, baseLng, p.id);
+        return {
           id: p.id,
-          lng: p.pickup!.lng!,
-          lat: p.pickup!.lat!,
-          color: STATUS_LABEL[p.status].color,
+          lng,
+          lat,
+          color: STATUS_META[p.status].color,
           label: p.name,
           address: p.pickup!.address,
-          statusLabel: STATUS_LABEL[p.status].label,
+          statusLabel: t(`adoption.${p.status}` as "adoption.available"),
           imageUrl: p.images[0] ?? "",
-        })),
-    [places],
+        };
+      }),
+    [mappable, t],
   );
 
   const selected = places.find((p) => p.id === selectedId) ?? null;
@@ -85,7 +121,7 @@ export function MapPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm theo tên pet hoặc địa chỉ…"
+              placeholder={t("map.searchPlaceholder")}
               className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
@@ -100,7 +136,7 @@ export function MapPage() {
                     : "bg-card border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {c}
+                {c === "All" ? t("forum.all") : c}
               </button>
             ))}
           </div>
@@ -126,7 +162,7 @@ export function MapPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                        {STATUS_LABEL[selected.status].label}
+                        {t(`adoption.${selected.status}` as "adoption.available")}
                       </div>
                       <div className="font-semibold mt-0.5">{selected.name}</div>
                     </div>
@@ -154,16 +190,16 @@ export function MapPage() {
 
           <aside className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
             <p className="text-xs text-muted-foreground px-1">
-              {places.length} điểm hẹn · click để zoom bản đồ
+              {t("map.pinCount", { count: mapMarkers.length, total: places.length })}
             </p>
             {places.length === 0 && (
               <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground text-sm">
-                Không có điểm hẹn phù hợp.
+                {t("map.empty")}
               </div>
             )}
             {places.map((p) => {
-              const meta = STATUS_LABEL[p.status];
               const isActive = selectedId === p.id;
+              const hasPin = p.pickup?.lat != null && p.pickup?.lng != null;
               return (
                 <button
                   key={p.id}
@@ -190,10 +226,13 @@ export function MapPage() {
                           {p.species}
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                         {p.pickup?.address}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{meta.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {t(`adoption.${p.status}` as "adoption.available")}
+                        {!hasPin ? ` · ${t("map.noCoords")}` : ""}
+                      </div>
                     </div>
                   </div>
                 </button>

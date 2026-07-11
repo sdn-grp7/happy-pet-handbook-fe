@@ -1,20 +1,26 @@
 export type GuideCategory = "basics" | "nutrition" | "training" | "health";
 
-export interface GuideSection {
-  title: string;
-  paragraphs: string[];
-  checklist?: string[];
-  tips?: { do: string; dont: string };
+export interface LocalizedString {
+  vi: string;
+  en: string;
 }
 
-export interface GuideArticle {
+/** A real PDF volume shown in the book-style reader. */
+export interface GuideBook {
   id: string;
   category: GuideCategory;
   slug: string;
-  eyebrow: string;
-  title: string;
-  subtitle: string;
-  sections: GuideSection[];
-  published: boolean;
-  updatedAt: string;
+  chapter: number;
+  /** Display title in the app chrome */
+  title: LocalizedString;
+  /** Short blurb under the title */
+  subtitle: LocalizedString;
+  /** Path under /public, e.g. /guides/pet-parent-guide.pdf */
+  pdfUrl: string;
+  /** Original publication title (for attribution) */
+  sourceTitle: string;
+  /** Publisher / author credit — required for redistributed guides */
+  attribution: string;
+  /** Link to the original source when available */
+  sourceUrl?: string;
 }

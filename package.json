@@ -8,7 +8,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "scrape:snnc": "node scripts/scrape-snnc.mjs"
+    "scrape:snnc": "node scripts/scrape-snnc.mjs",
+    "fetch:guides": "node scripts/fetch-guide-pdfs.mjs",
+    "postinstall": "node scripts/copy-pdf-worker.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -50,6 +52,7 @@
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.71.2",
+    "react-pdf": "^10.4.1",
     "react-resizable-panels": "^4.6.5",
     "react-router-dom": "^7.6.2",
     "recharts": "^2.15.4",

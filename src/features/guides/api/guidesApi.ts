@@ -1,13 +1,13 @@
-import { mockGuides, getGuideBySlug } from "@/features/guides/mocks/data";
-import type { GuideArticle } from "@/features/guides/types";
+import { guideBooks, getBookBySlug } from "@/features/guides/mocks/data";
+import type { GuideBook } from "@/features/guides/types";
 import { delay } from "@/shared/lib/delay";
 
-export async function getGuides(): Promise<GuideArticle[]> {
-  await delay();
-  return mockGuides.filter((g) => g.published);
+export async function getGuides(): Promise<GuideBook[]> {
+  await delay(80);
+  return guideBooks;
 }
 
-export async function getGuide(slug: string): Promise<GuideArticle | undefined> {
-  await delay();
-  return getGuideBySlug(slug);
+export async function getGuide(slug: string): Promise<GuideBook | undefined> {
+  await delay(80);
+  return getBookBySlug(slug);
 }

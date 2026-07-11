@@ -1,170 +1,103 @@
-import type { GuideArticle } from "@/features/guides/types";
+import type { GuideBook, LocalizedString } from "@/features/guides/types";
 
-export const mockGuides: GuideArticle[] = [
+export function pickL(value: LocalizedString, locale: "vi" | "en"): string {
+  return value[locale] || value.en || value.vi;
+}
+
+/**
+ * Free / educational PDFs (non-commercial share with attribution).
+ * Files live in public/guides/ — refresh with: npm run fetch:guides
+ */
+export const guideBooks: GuideBook[] = [
   {
-    id: "g1",
+    id: "book-basics",
     category: "basics",
     slug: "basics",
-    eyebrow: "Chapter 1",
-    title: "The Basics",
-    subtitle:
-      "Bringing a new pet home is exciting — and a little overwhelming. Here's how to start strong.",
-    published: true,
-    updatedAt: "2025-05-01T00:00:00Z",
-    sections: [
-      {
-        title: "Prepare a safe space",
-        paragraphs: [
-          "Before your pet arrives, set aside one quiet room or corner that belongs to them. Add a soft bed, fresh water, a couple of toys, and the food they are already used to.",
-        ],
-        checklist: [
-          "Remove cables, toxic plants, and small swallowable objects",
-          "Block off rooms you don't want them in (for now)",
-          "Choose a feeding spot away from foot traffic",
-          "Have an ID tag and microchip details ready",
-        ],
-      },
-      {
-        title: "Build trust slowly",
-        paragraphs: [
-          "Let your pet come to you. Sit on the floor, speak softly, and offer treats from an open hand. Avoid picking them up in the first days unless necessary.",
-        ],
-      },
-      {
-        title: "Create a daily routine",
-        paragraphs: [
-          "Pets thrive on predictability. Try to feed, walk, play, and rest at roughly the same times each day.",
-        ],
-        tips: {
-          do: "Give them their own quiet corner. Keep visitors to a minimum the first week. Praise calm behavior.",
-          dont: "Don't overwhelm with handling, loud noises, or too many new faces. Don't change food abruptly.",
-        },
-      },
-    ],
+    chapter: 1,
+    title: {
+      vi: "Cẩm nang chủ nuôi",
+      en: "Pet Parent Guide",
+    },
+    subtitle: {
+      vi: "Chào đón thú cưng mới — checklist nhận nuôi và chăm sóc cơ bản.",
+      en: "Welcoming a new pet — adoption checklist and everyday care basics.",
+    },
+    pdfUrl: "/guides/pet-parent-guide.pdf",
+    sourceTitle: "Pet Parent Guide",
+    attribution: "American Humane Society — shared for non-commercial use with credit.",
+    sourceUrl:
+      "https://www.americanhumane.org/wp-content/uploads/2025/03/AmericanHumaneSociety-PetParentGuide.pdf",
   },
   {
-    id: "g2",
+    id: "book-nutrition",
     category: "nutrition",
     slug: "nutrition",
-    eyebrow: "Chapter 2",
-    title: "Nutrition",
-    subtitle:
-      "Good food fuels a long, happy life. Learn what to feed, how much, and when to adjust.",
-    published: true,
-    updatedAt: "2025-05-01T00:00:00Z",
-    sections: [
-      {
-        title: "Choose quality food",
-        paragraphs: [
-          "Look for food labeled complete and balanced for your pet's life stage. When in doubt, ask your vet — they know your pet's specific needs.",
-        ],
-        checklist: [
-          "Match food to species, age, and activity level",
-          "Introduce new food gradually over 7–10 days",
-          "Keep fresh water available at all times",
-          "Avoid toxic human foods (chocolate, grapes, onions)",
-        ],
-      },
-      {
-        title: "Portions and schedule",
-        paragraphs: [
-          "Follow the package guidelines as a starting point, then adjust based on body condition. Most adult dogs do well with two meals a day; cats often prefer smaller, frequent meals.",
-        ],
-      },
-      {
-        title: "Treats and extras",
-        paragraphs: [
-          "Treats should make up no more than 10% of daily calories. Use them for training and bonding — not as meal replacements.",
-        ],
-        tips: {
-          do: "Weigh portions if your pet tends to overeat. Use puzzle feeders for mental stimulation.",
-          dont: "Don't feed from the table. Don't switch brands suddenly without a transition period.",
-        },
-      },
-    ],
+    chapter: 2,
+    title: {
+      vi: "Đọc nhãn thức ăn",
+      en: "Reading Pet Food Labels",
+    },
+    subtitle: {
+      vi: "Hiểu nhãn AAFCO, thành phần và khẩu phần — chọn thức ăn đúng.",
+      en: "Understand AAFCO statements, ingredients, and feeding amounts.",
+    },
+    pdfUrl: "/guides/pet-food-labels.pdf",
+    sourceTitle: "A Consumer's Guide: Overview of Pet Food Labels",
+    attribution: "Virginia Cooperative Extension (Virginia Tech).",
+    sourceUrl: "https://www.pubs.ext.vt.edu/content/dam/pubs_ext_vt_edu/FST/fst-434/fst-434.pdf",
   },
   {
-    id: "g3",
+    id: "book-training",
     category: "training",
     slug: "training",
-    eyebrow: "Chapter 3",
-    title: "Training",
-    subtitle: "Kind, consistent training builds confidence — for both of you.",
-    published: true,
-    updatedAt: "2025-05-01T00:00:00Z",
-    sections: [
-      {
-        title: "Start with the basics",
-        paragraphs: [
-          "Focus on name recognition, sit, come, and leash manners before advanced tricks. Short sessions (5–10 minutes) beat long marathons.",
-        ],
-        checklist: [
-          "Use high-value treats for new skills",
-          "Reward the behavior you want — ignore or redirect unwanted behavior",
-          "Keep training fun; end on a success",
-          "Practice in low-distraction environments first",
-        ],
-      },
-      {
-        title: "Positive reinforcement",
-        paragraphs: [
-          "Reward good behavior immediately. Dogs and cats learn best when they associate actions with something pleasant — never fear.",
-        ],
-      },
-      {
-        title: "Common challenges",
-        paragraphs: [
-          "Jumping, barking, and pulling on leash are normal. Stay patient, stay consistent, and celebrate small improvements.",
-        ],
-        tips: {
-          do: "Exercise before training sessions. Use the same cue words every time.",
-          dont: "Don't punish after the fact. Don't yell — it raises stress without teaching.",
-        },
-      },
-    ],
+    chapter: 3,
+    title: {
+      vi: "Huấn luyện tích cực",
+      en: "Positive Reinforcement",
+    },
+    subtitle: {
+      vi: "Dạy chó bằng thưởng và khen — không dùng hình phạt.",
+      en: "Train with rewards and praise — not punishment.",
+    },
+    pdfUrl: "/guides/positive-reinforcement-dog.pdf",
+    sourceTitle: "Positive Reinforcement Dog Training",
+    attribution: "Government of South Australia — Animal Welfare.",
+    sourceUrl:
+      "https://www.sa.gov/files/assets/main/v/1/acs/documents/positive-reinforcement-dog.pdf",
   },
   {
-    id: "g4",
+    id: "book-health",
     category: "health",
     slug: "health",
-    eyebrow: "Chapter 4",
-    title: "Health & Wellness",
-    subtitle: "Prevention beats cure. Here's how to keep your pet thriving year-round.",
-    published: true,
-    updatedAt: "2025-05-01T00:00:00Z",
-    sections: [
-      {
-        title: "Regular vet care",
-        paragraphs: [
-          "Annual check-ups catch problems early. Puppies and kittens need a vaccination series; seniors may need twice-yearly visits.",
-        ],
-        checklist: [
-          "Keep vaccination records handy",
-          "Use flea, tick, and heartworm prevention as recommended",
-          "Brush teeth or use dental treats regularly",
-          "Know your nearest emergency vet clinic",
-        ],
-      },
-      {
-        title: "Grooming and hygiene",
-        paragraphs: [
-          "Brush coat type appropriately, trim nails before they click on floors, and clean ears if your breed is prone to buildup.",
-        ],
-      },
-      {
-        title: "Know the warning signs",
-        paragraphs: [
-          "Lethargy, loss of appetite, vomiting, or sudden behavior changes warrant a vet call. Trust your instincts.",
-        ],
-        tips: {
-          do: "Weigh your pet monthly. Track eating and bathroom habits.",
-          dont: "Don't wait if breathing is labored or gums look pale. Don't self-medicate with human drugs.",
-        },
-      },
-    ],
+    chapter: 4,
+    title: {
+      vi: "Sẵn sàng khi khẩn cấp",
+      en: "Pet Preparedness",
+    },
+    subtitle: {
+      vi: "Kit cứu hộ, sơ tán và giữ thú cưng an toàn khi thiên tai.",
+      en: "Emergency kits, evacuation plans, and keeping pets safe in disasters.",
+    },
+    pdfUrl: "/guides/pet-preparedness.pdf",
+    sourceTitle: "The Ultimate Pet Preparedness Toolkit",
+    attribution: "American Humane Society — free for personal and educational use.",
+    sourceUrl:
+      "https://www.americanhumane.org/wp-content/uploads/2025/08/Ultimate-Pet-Preparedness-Toolkit.pdf",
   },
 ];
 
-export function getGuideBySlug(slug: string) {
-  return mockGuides.find((g) => g.slug === slug);
+export function getBookBySlug(slug: string): GuideBook | undefined {
+  return guideBooks.find((b) => b.slug === slug);
 }
+
+export function getGuideNav() {
+  return guideBooks.map((b) => ({
+    slug: b.slug,
+    chapter: b.chapter,
+    title: b.title,
+    path: `/${b.slug}`,
+  }));
+}
+
+/** @deprecated Use guideBooks — kept for any leftover imports */
+export const mockGuides = guideBooks;

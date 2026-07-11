@@ -468,8 +468,11 @@ export function SiteLayout() {
         </div>
 
         {onGuide && (
-          <div className="border-t border-border/60 bg-muted/40">
-            <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-2 scrollbar-none sm:px-6">
+          <div className="border-t border-border/50">
+            <nav
+              className="mx-auto flex max-w-2xl gap-5 overflow-x-auto px-5 py-2.5 scrollbar-none sm:px-6"
+              aria-label="Guide chapters"
+            >
               {guideLinks.map((chapter) => (
                 <NavLink
                   key={chapter.to}
@@ -477,10 +480,10 @@ export function SiteLayout() {
                   end
                   className={({ isActive }) =>
                     cn(
-                      "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors",
+                      "shrink-0 border-b-2 py-1.5 text-sm transition-colors",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
-                        : "text-muted-foreground hover:bg-background hover:text-foreground",
+                        ? "border-foreground font-medium text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
                     )
                   }
                 >

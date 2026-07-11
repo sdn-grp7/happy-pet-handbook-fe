@@ -145,6 +145,12 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: "Be Vietnam Pro", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .font-serif {
+    font-family: Merriweather, "Noto Serif", "Times New Roman", serif;
+    font-optical-sizing: auto;
   }
 }
 

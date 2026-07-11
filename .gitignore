@@ -17,6 +17,12 @@ dist
 # Scraper raw dump (regenerate with npm run scrape:snnc)
 scripts/snnc-raw.json
 
+# Guide PDFs (regenerate with npm run fetch:guides)
+public/guides/*.pdf
+
+# Keep public/pdf.worker.min.mjs in sync with react-pdf's pdfjs-dist
+# (copied from node_modules/react-pdf/node_modules/pdfjs-dist/build/)
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

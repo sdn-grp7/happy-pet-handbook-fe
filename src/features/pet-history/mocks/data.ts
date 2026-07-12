@@ -80,7 +80,7 @@ export const mockPetHistory: PetHistoryEvent[] = [
   },
   {
     id: "h8",
-    petId: "900255001491388",
+    petId: "Đ03",
     type: "vaccination",
     title: "Chuỗi tiêm FVRCP cho mèo con",
     titleKey: "petHistory.events.g8.title",

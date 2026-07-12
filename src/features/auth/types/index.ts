@@ -7,5 +7,6 @@ export interface User {
   avatar?: string;
   role: UserRole;
   googleId?: string;
+  hasPassword?: boolean;
   createdAt: string;
 }

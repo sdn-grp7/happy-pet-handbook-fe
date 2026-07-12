@@ -1,15 +1,16 @@
-import { Syringe, FileText, Users, StickyNote } from "lucide-react";
+import { Syringe, FileText, Users, StickyNote, HeartPulse } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { PetHistoryEvent, HistoryEventType } from "@/features/pet-history/types";
 import { useI18n, type TranslationKey } from "@/i18n/I18nContext";
 import { getPet } from "@/features/pets/api/petsApi";
 
-const TYPE_META: Record<HistoryEventType, { icon: typeof Syringe; color: string }> = {
-  vaccination: { icon: Syringe, color: "#10b981" },
-  medical: { icon: FileText, color: "#ef4444" },
-  ownership: { icon: Users, color: "#8b5cf6" },
-  note: { icon: StickyNote, color: "#f59e0b" },
+const TYPE_META: Record<HistoryEventType, { icon: typeof Syringe; bgClass: string }> = {
+  vaccination: { icon: Syringe, bgClass: "bg-emerald-500" },
+  medical: { icon: FileText, bgClass: "bg-red-500" },
+  ownership: { icon: Users, bgClass: "bg-violet-500" },
+  note: { icon: StickyNote, bgClass: "bg-amber-500" },
+  postAdoption: { icon: HeartPulse, bgClass: "bg-sky-500" },
 };
 
 type PetHistoryTimelineProps = {
@@ -17,14 +18,14 @@ type PetHistoryTimelineProps = {
   emptyMessage?: string;
 };
 
-export function PetHistoryTimeline({
-  events,
-  emptyMessage,
-}: PetHistoryTimelineProps) {
+export function PetHistoryTimeline({ events, emptyMessage }: PetHistoryTimelineProps) {
   const { t } = useI18n();
   const resolvedEmptyMessage = emptyMessage ?? t("petHistory.emptyMessage");
 
-  const petIds = useMemo(() => Array.from(new Set(events.map((e) => e.petId).filter(Boolean))), [events]);
+  const petIds = useMemo(
+    () => Array.from(new Set(events.map((e) => e.petId).filter(Boolean))),
+    [events],
+  );
   const [petNames, setPetNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -55,13 +56,14 @@ export function PetHistoryTimeline({
         const meta = TYPE_META[e.type];
         const Icon = meta.icon;
         const title = e.titleKey ? t(e.titleKey as TranslationKey) : e.title;
-        const description = e.descriptionKey ? t(e.descriptionKey as TranslationKey) : e.description;
+        const description = e.descriptionKey
+          ? t(e.descriptionKey as TranslationKey)
+          : e.description;
         const typeLabel = t(`petHistory.types.${e.type}` as TranslationKey);
         return (
           <li key={e.id} className="ml-6">
             <span
-              className="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full text-white"
-              style={{ background: meta.color }}
+              className={`absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full text-white ${meta.bgClass}`}
             >
               <Icon className="h-3 w-3" />
             </span>
@@ -74,13 +76,27 @@ export function PetHistoryTimeline({
             </div>
             {events.length > 1 && e.petId && (
               <div className="text-sm mt-1">
-                <Link to={`/adoption?pet=${encodeURIComponent(e.petId)}`} className="font-medium text-primary hover:underline">
+                <Link
+                  to={`/adoption?pet=${encodeURIComponent(e.petId)}`}
+                  className="font-medium text-primary hover:underline"
+                >
                   {petNames[e.petId] ?? e.petId}
                 </Link>
               </div>
             )}
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("petHistory.recordedBy", { name: e.recordedBy })}</p>
+            {e.photoUrl ? (
+              <div className="mt-2">
+                <img
+                  src={e.photoUrl}
+                  alt={t("petHistory.checkInPhotoAlt", { pet: petNames[e.petId] ?? e.petId })}
+                  className="rounded-2xl border border-border object-cover max-h-52 w-full"
+                />
+              </div>
+            ) : null}
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("petHistory.recordedBy", { name: e.recordedBy })}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">{typeLabel}</p>
           </li>
         );

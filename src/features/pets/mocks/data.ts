@@ -89,9 +89,9 @@ function getLocalizedPet(pet: PetListing, locale: Locale = getCurrentLocale()): 
     postedByName: locale === "en" ? "PawPath shelter" : pet.postedByName,
     pickup: pet.pickup
       ? {
-        ...pet.pickup,
-        address: translatePickupAddress(pet.pickup.address, locale) ?? pet.pickup.address,
-      }
+          ...pet.pickup,
+          address: translatePickupAddress(pet.pickup.address, locale) ?? pet.pickup.address,
+        }
       : pet.pickup,
   };
 }

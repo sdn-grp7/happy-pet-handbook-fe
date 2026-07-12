@@ -1,13 +1,14 @@
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { DEMO_CREDENTIALS, mockUsers } from "@/features/auth/mocks/data";
 import { useI18n } from "@/i18n/I18nContext";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { LogIn, Mail, Lock, User, Zap } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
+import { LogIn, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { ApiError } from "@/lib/api";
 
-const quickLoginUser = mockUsers[0];
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 export function LoginPage() {
   const { t } = useI18n();
@@ -18,6 +19,7 @@ export function LoginPage() {
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
   const goAfterAuth = () => navigate(from, { replace: true });
@@ -25,30 +27,21 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (mode === "register") {
-      if (form.password.length < 6) {
-        setError("Password must be at least 6 characters.");
+    try {
+      if (mode === "register") {
+        if (form.password.length < 8) {
+          setError("Password must be at least 8 characters.");
+          return;
+        }
+        await register(form.name, form.email, form.password);
+        goAfterAuth();
         return;
       }
-      await register(form.name, form.email, form.password);
+      await login(form.email, form.password);
       goAfterAuth();
-      return;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong.");
     }
-    const ok = await login(form.email, form.password);
-    if (!ok) setError("Invalid email or password.");
-    else goAfterAuth();
-  };
-
-  const handleGoogle = async () => {
-    await loginGoogle();
-    goAfterAuth();
-  };
-
-  const handleQuickLogin = async () => {
-    setError("");
-    const ok = await login(DEMO_CREDENTIALS.email, DEMO_CREDENTIALS.password);
-    if (!ok) setError("Could not sign in. Please try again.");
-    else goAfterAuth();
   };
 
   return (
@@ -95,14 +88,24 @@ export function LoginPage() {
             <label className="text-sm font-medium flex items-center gap-2" htmlFor="password">
               <Lock className="h-4 w-4" /> Password
             </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={form.password}
-              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
-            />
+            <div className="relative mt-1">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                required
+                value={form.password}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 pr-10 outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground transition"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <button
@@ -114,43 +117,46 @@ export function LoginPage() {
             <LogIn className="h-4 w-4" />
             {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Register"}
           </button>
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={loading}
-            className="w-full rounded-full border border-border px-6 py-3 text-sm font-medium hover:bg-muted transition disabled:opacity-60"
-          >
-            Continue with Google
-          </button>
-          {mode === "login" && (
-            <>
-              <div className="relative py-1">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs text-muted-foreground">
-                  <span className="bg-card px-2">or</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleQuickLogin}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 rounded-full border border-primary/25 bg-primary/5 px-6 py-3 text-sm font-medium hover:bg-primary/10 transition disabled:opacity-60"
-              >
-                {quickLoginUser.avatar ? (
-                  <img
-                    src={quickLoginUser.avatar}
-                    alt=""
-                    className="h-8 w-8 rounded-full border border-border"
-                  />
-                ) : (
-                  <Zap className="h-4 w-4 text-primary" />
-                )}
-                Continue as {quickLoginUser.name}
-              </button>
-            </>
+
+          <div className="relative py-1">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs text-muted-foreground">
+              <span className="bg-card px-2">or</span>
+            </div>
+          </div>
+
+          {googleClientId ? (
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={async (cred) => {
+                  if (!cred.credential) {
+                    setError("Google did not return a credential.");
+                    return;
+                  }
+                  try {
+                    setError("");
+                    await loginGoogle(cred.credential);
+                    goAfterAuth();
+                  } catch (err) {
+                    setError(err instanceof ApiError ? err.message : "Google sign-in failed.");
+                  }
+                }}
+                onError={() => setError("Google sign-in was cancelled or failed.")}
+                useOneTap={false}
+                theme="outline"
+                shape="pill"
+                width="100%"
+              />
+            </div>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground">
+              Google sign-in chưa cấu hình. Thêm{" "}
+              <code className="text-xs">VITE_GOOGLE_CLIENT_ID</code> vào .env.
+            </p>
           )}
+
           <p className="text-center text-sm text-muted-foreground">
             {mode === "login" ? (
               <>

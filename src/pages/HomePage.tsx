@@ -18,6 +18,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useI18n } from "@/i18n/I18nContext";
 import type { TranslationKey } from "@/i18n/I18nContext";
+import { getGivenName } from "@/lib/utils";
 
 const heroImage =
   "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1536&h=1024&fit=crop";
@@ -108,7 +109,7 @@ export function HomePage() {
             </h1>
             <p className="mt-5 max-w-lg text-lg text-muted-foreground">
               {user
-                ? t("home.welcomeBack", { name: user.name.split(" ")[0] })
+                ? t("home.welcomeBack", { name: getGivenName(user.name) })
                 : t("home.guestIntro")}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">

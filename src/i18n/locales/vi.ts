@@ -203,6 +203,20 @@ export const vi = {
     eyebrow: "Tài khoản",
     title: "Hồ sơ của bạn",
     subtitle: "Quản lý thông tin, yêu cầu nhận nuôi và điểm tin cậy.",
+    uploadAvatar: "Tải ảnh đại diện",
+    uploadAvatarHint: "Chọn ảnh từ máy của bạn",
+    changePassword: "Đổi mật khẩu",
+    setPassword: "Đặt mật khẩu",
+    setPasswordHint: "Tài khoản đang đăng nhập bằng Google. Thêm mật khẩu để đăng nhập bằng email.",
+    currentPassword: "Mật khẩu hiện tại",
+    newPassword: "Mật khẩu mới",
+    confirmPassword: "Xác nhận mật khẩu mới",
+    updatePassword: "Cập nhật mật khẩu",
+    savePassword: "Lưu mật khẩu",
+    passwordUpdated: "Đã đổi mật khẩu thành công.",
+    passwordSet: "Đã đặt mật khẩu. Bạn có thể đăng nhập bằng email.",
+    passwordMismatch: "Mật khẩu mới không khớp.",
+    passwordTooShort: "Mật khẩu phải có ít nhất 8 ký tự.",
   },
   notFound: {
     title: "Không tìm thấy trang",
@@ -229,6 +243,9 @@ export const vi = {
   common: {
     loading: "Đang tải…",
     language: "Ngôn ngữ",
+    theme: "Giao diện",
+    switchToLight: "Chuyển sang sáng",
+    switchToDark: "Chuyển sang tối",
   },
 } as const;
 

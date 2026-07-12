@@ -18,6 +18,7 @@ import {
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useI18n } from "@/i18n/I18nContext";
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher";
+import { getGivenName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -242,7 +243,7 @@ export function SiteLayout() {
                         <User className="h-4 w-4" />
                       </span>
                     )}
-                    <span className="max-w-[100px] truncate">{user.name.split(" ")[0]}</span>
+                    <span className="max-w-[100px] truncate">{getGivenName(user.name)}</span>
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>

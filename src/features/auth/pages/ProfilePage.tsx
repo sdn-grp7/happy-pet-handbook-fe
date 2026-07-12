@@ -1,26 +1,95 @@
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAdoptionRequests } from "@/features/adoption/api/adoptionApi";
 import { getReputation } from "@/features/reputation/api/reputationApi";
+import { uploadAvatarToCloudinary } from "@/features/auth/api/avatarApi";
 import type { AdoptionRequest } from "@/features/adoption/types";
 import type { ReputationProfile } from "@/features/reputation/types";
 import { useI18n } from "@/i18n/I18nContext";
 import { Link } from "react-router-dom";
-import { User, LogOut, Shield, Star } from "lucide-react";
+import { User, LogOut, Shield, Star, Camera, Loader2, Lock, Eye, EyeOff } from "lucide-react";
+import { ApiError } from "@/lib/api";
 
 export function ProfilePage() {
   const { t } = useI18n();
-  const { user, logout } = useAuth();
+  const { user, logout, updateAvatar, changePassword } = useAuth();
   const account = user!;
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [adoptions, setAdoptions] = useState<AdoptionRequest[]>([]);
   const [reputation, setReputation] = useState<ReputationProfile | undefined>();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  const hasPassword =
+    account.hasPassword === true || (!account.googleId && account.hasPassword !== false);
 
   useEffect(() => {
     getAdoptionRequests(account.id).then(setAdoptions);
     getReputation(account.id).then(setReputation);
   }, [account.id]);
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploadingAvatar(true);
+    setAvatarError(null);
+
+    try {
+      const avatarUrl = await uploadAvatarToCloudinary(file);
+      await updateAvatar(avatarUrl);
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : "Unable to update avatar.");
+    } finally {
+      setUploadingAvatar(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError(t("profile.passwordTooShort"));
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError(t("profile.passwordMismatch"));
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await changePassword(
+        passwordForm.newPassword,
+        hasPassword ? passwordForm.currentPassword : undefined,
+      );
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordSuccess(hasPassword ? t("profile.passwordUpdated") : t("profile.passwordSet"));
+    } catch (error) {
+      setPasswordError(error instanceof ApiError ? error.message : "Unable to update password.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   return (
     <>
@@ -35,17 +104,39 @@ export function ProfilePage() {
       />
       <section className="max-w-3xl mx-auto px-6 py-12 space-y-6">
         <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] flex items-start gap-4">
-          {account.avatar ? (
-            <img
-              src={account.avatar}
-              alt=""
-              className="h-16 w-16 rounded-full border border-border"
+          <div className="relative">
+            {account.avatar ? (
+              <img
+                src={account.avatar}
+                alt=""
+                className="h-16 w-16 rounded-full border border-border object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <User className="h-8 w-8 text-muted-foreground" />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute bottom-0 right-0 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm disabled:opacity-60"
+              aria-label={t("profile.uploadAvatar")}
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
             />
-          ) : (
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-              <User className="h-8 w-8 text-muted-foreground" />
-            </div>
-          )}
+          </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-semibold">{account.name}</h2>
             <p className="text-sm text-muted-foreground">{account.email}</p>
@@ -57,6 +148,7 @@ export function ProfilePage() {
                 <span className="rounded-full bg-muted px-2 py-0.5">Google linked</span>
               )}
             </div>
+            {avatarError && <p className="mt-2 text-sm text-destructive">{avatarError}</p>}
           </div>
           <button
             onClick={logout}
@@ -65,6 +157,105 @@ export function ProfilePage() {
             <LogOut className="h-4 w-4" /> Log out
           </button>
         </div>
+
+        <form
+          onSubmit={handleChangePassword}
+          className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] space-y-4"
+        >
+          <div>
+            <h3 className="font-semibold flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              {hasPassword ? t("profile.changePassword") : t("profile.setPassword")}
+            </h3>
+            {!hasPassword && (
+              <p className="mt-1 text-sm text-muted-foreground">{t("profile.setPasswordHint")}</p>
+            )}
+          </div>
+
+          {(
+            [
+              ...(hasPassword
+                ? [
+                    {
+                      id: "currentPassword",
+                      label: t("profile.currentPassword"),
+                      value: passwordForm.currentPassword,
+                      field: "currentPassword" as const,
+                      visible: showPasswords.current,
+                      toggleKey: "current" as const,
+                      autoComplete: "current-password",
+                    },
+                  ]
+                : []),
+              {
+                id: "newPassword",
+                label: t("profile.newPassword"),
+                value: passwordForm.newPassword,
+                field: "newPassword" as const,
+                visible: showPasswords.next,
+                toggleKey: "next" as const,
+                autoComplete: "new-password",
+              },
+              {
+                id: "confirmPassword",
+                label: t("profile.confirmPassword"),
+                value: passwordForm.confirmPassword,
+                field: "confirmPassword" as const,
+                visible: showPasswords.confirm,
+                toggleKey: "confirm" as const,
+                autoComplete: "new-password",
+              },
+            ] as const
+          ).map((field) => (
+            <div key={field.id}>
+              <label className="text-sm font-medium" htmlFor={field.id}>
+                {field.label}
+              </label>
+              <div className="relative mt-1">
+                <input
+                  id={field.id}
+                  type={field.visible ? "text" : "password"}
+                  required
+                  autoComplete={field.autoComplete}
+                  value={field.value}
+                  onChange={(e) =>
+                    setPasswordForm((f) => ({ ...f, [field.field]: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 pr-10 outline-none focus:ring-2 focus:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((s) => ({ ...s, [field.toggleKey]: !s[field.toggleKey] }))
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground transition"
+                  aria-label={field.visible ? "Hide password" : "Show password"}
+                >
+                  {field.visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
+          {passwordSuccess && (
+            <p className="text-sm text-emerald-600 dark:text-emerald-400">{passwordSuccess}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={passwordLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm text-primary-foreground font-medium shadow-[var(--shadow-soft)] hover:opacity-95 transition disabled:opacity-60"
+            style={{ background: "var(--gradient-warm)" }}
+          >
+            {passwordLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
+            {hasPassword ? t("profile.updatePassword") : t("profile.savePassword")}
+          </button>
+        </form>
 
         {reputation && (
           <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">

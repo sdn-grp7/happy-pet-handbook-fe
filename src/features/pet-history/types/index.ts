@@ -1,4 +1,4 @@
-export type HistoryEventType = "vaccination" | "medical" | "ownership" | "note";
+export type HistoryEventType = "vaccination" | "medical" | "ownership" | "note" | "postAdoption";
 
 export interface PetHistoryEvent {
   id: string;
@@ -10,4 +10,6 @@ export interface PetHistoryEvent {
   descriptionKey?: string;
   date: string;
   recordedBy: string;
+  photoUrl?: string;
+  healthReport?: string;
 }

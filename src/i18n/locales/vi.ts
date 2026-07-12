@@ -229,6 +229,8 @@ export const vi = {
     petHistoryDescription:
       "Theo dõi các cập nhật về tiêm phòng, y tế, quyền sở hữu và ghi chú cho thú cưng đã nhận nuôi.",
     postAdoptionCheckIns: "Check-in sau nhận nuôi",
+    noHistoryYet: "Chưa có lịch sử",
+    historyRecords: "mục lịch sử",
   },
   petHistory: {
     title: "Lịch sử thú cưng",
@@ -246,6 +248,7 @@ export const vi = {
       medical: "Y tế",
       ownership: "Sở hữu",
       note: "Ghi chú",
+      postAdoption: "Check-in sau nhận nuôi",
     },
     events: {
       g1: {
@@ -280,7 +283,16 @@ export const vi = {
         title: "Chuỗi tiêm FVRCP cho mèo con",
         description: "Đã tiêm liều thứ hai. Còn một mũi tăng cường.",
       },
+      checkInSubmitted: {
+        title: "Đã gửi check-in",
+        description: "Báo cáo sức khỏe sau nhận nuôi đã được ghi lại.",
+      },
+      checkInScheduled: {
+        title: "Check-in được lên lịch",
+        description: "Buổi theo dõi sau nhận nuôi sắp được thực hiện.",
+      },
     },
+    checkInPhotoAlt: "Ảnh từ check-in của {pet}",
   },
   notFound: {
     title: "Không tìm thấy trang",

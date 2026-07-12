@@ -231,6 +231,8 @@ export const en: TranslationDict = {
     petHistoryDescription:
       "Follow vaccination, medical, ownership, and note updates for pets you adopted.",
     postAdoptionCheckIns: "Post-adoption check-ins",
+    noHistoryYet: "No history yet",
+    historyRecords: "history records",
   },
   petHistory: {
     title: "Pet history",
@@ -247,6 +249,7 @@ export const en: TranslationDict = {
       medical: "Medical",
       ownership: "Ownership",
       note: "Note",
+      postAdoption: "Post-adoption check-in",
     },
     events: {
       g1: {
@@ -272,7 +275,16 @@ export const en: TranslationDict = {
         title: "FVRCP kitten series",
         description: "Second dose administered. One booster remaining.",
       },
+      checkInSubmitted: {
+        title: "Check-in submitted",
+        description: "A post-adoption health report was logged.",
+      },
+      checkInScheduled: {
+        title: "Scheduled check-in",
+        description: "Upcoming post-adoption follow-up is planned.",
+      },
     },
+    checkInPhotoAlt: "Photo from {pet} check-in",
   },
   notFound: {
     title: "Page not found",

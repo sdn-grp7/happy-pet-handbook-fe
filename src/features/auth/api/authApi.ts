@@ -1,33 +1,69 @@
-import { DEMO_CREDENTIALS, mockUsers } from "@/features/auth/mocks/data";
+import { apiRequest } from "@/lib/api";
 import type { User } from "@/features/auth/types";
-import { delay } from "@/shared/lib/delay";
 
-export async function loginWithEmail(email: string, password: string): Promise<User | null> {
-  await delay();
-  if (email === DEMO_CREDENTIALS.email && password === DEMO_CREDENTIALS.password) {
-    return mockUsers.find((u) => u.email === email) ?? null;
-  }
-  const user = mockUsers.find((u) => u.email === email);
-  return user && password.length >= 6 ? user : null;
+export type AuthResponse = {
+  token: string;
+  user: User;
+};
+
+export type MeResponse = {
+  user: User;
+};
+
+export async function loginWithEmail(email: string, password: string): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>("/api/auth/login", {
+    method: "POST",
+    body: { email, password },
+  });
 }
 
-export async function loginWithGoogle(): Promise<User> {
-  await delay(400);
-  return mockUsers.find((u) => u.googleId) ?? mockUsers[0];
+export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>("/api/auth/google", {
+    method: "POST",
+    body: { idToken },
+  });
 }
 
-export async function register(name: string, email: string, _password: string): Promise<User> {
-  await delay();
-  return {
-    id: `u${Date.now()}`,
-    email,
-    name,
-    role: "user",
-    createdAt: new Date().toISOString(),
-  };
+export async function register(
+  name: string,
+  email: string,
+  password: string,
+): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>("/api/auth/register", {
+    method: "POST",
+    body: { name, email, password },
+  });
 }
 
-export async function getUserById(id: string): Promise<User | undefined> {
-  await delay();
-  return mockUsers.find((u) => u.id === id);
+export async function fetchMe(token: string): Promise<User> {
+  const data = await apiRequest<MeResponse>("/api/auth/me", { token });
+  return data.user;
+}
+
+export async function updateProfile(
+  token: string,
+  patch: { name?: string; avatar?: string },
+): Promise<User> {
+  const data = await apiRequest<MeResponse>("/api/auth/me", {
+    method: "PATCH",
+    token,
+    body: patch,
+  });
+  return data.user;
+}
+
+export async function changePassword(
+  token: string,
+  newPassword: string,
+  currentPassword?: string,
+): Promise<User> {
+  const data = await apiRequest<{ message: string; user: User }>("/api/auth/change-password", {
+    method: "POST",
+    token,
+    body: {
+      newPassword,
+      ...(currentPassword ? { currentPassword } : {}),
+    },
+  });
+  return data.user;
 }

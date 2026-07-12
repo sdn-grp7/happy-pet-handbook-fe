@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { PetImage } from "@/features/pets/components/PetImage";
 import { submitAdoptionRequest } from "@/features/adoption/api/adoptionApi";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { PetHistoryTimeline } from "@/features/pet-history/components/PetHistoryTimeline";
+import { getPetHistory } from "@/features/pet-history/api/petHistoryApi";
+import type { PetHistoryEvent } from "@/features/pet-history/types";
 import { useI18n } from "@/i18n/I18nContext";
 import type { TranslationKey } from "@/i18n/I18nContext";
 import type { PetListing } from "@/features/pets/types";
@@ -37,8 +40,8 @@ function zaloUrl(phone: string) {
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex gap-3 border-b border-dashed border-border py-2.5 text-sm last:border-0">
-      <dt className="w-[42%] shrink-0 font-semibold text-foreground">{label}</dt>
-      <dd className="min-w-0 flex-1 text-muted-foreground">{value}</dd>
+      <span className="w-[42%] shrink-0 font-semibold text-foreground">{label}</span>
+      <span className="min-w-0 flex-1 text-muted-foreground">{value}</span>
     </div>
   );
 }
@@ -58,6 +61,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [petHistory, setPetHistory] = useState<PetHistoryEvent[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,6 +70,18 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
     setMessage("");
     setSubmitted(false);
     setSubmitting(false);
+    setPetHistory([]);
+
+    if (!pet?.id) return;
+
+    let active = true;
+    getPetHistory(pet.id).then((events) => {
+      if (active) setPetHistory(events);
+    });
+
+    return () => {
+      active = false;
+    };
   }, [open, pet?.id]);
 
   if (!pet) return null;
@@ -113,6 +129,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                   <button
                     key={`${src}-${i}`}
                     type="button"
+                    aria-label={`View image ${i + 1}`}
                     onClick={() => setActiveImage(i)}
                     className={cn(
                       "h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition",
@@ -136,7 +153,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
               </p>
             </div>
 
-            <dl className="mt-5">
+            <div className="mt-5">
               <InfoRow label={t("pet.id")} value={pet.code} />
               <InfoRow label={t("pet.gender")} value={t(GENDER_KEYS[pet.gender])} />
               <InfoRow label={t("pet.age")} value={pet.age} />
@@ -159,7 +176,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                   }
                 />
               )}
-            </dl>
+            </div>
 
             {pet.description && (
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -221,6 +238,24 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                 </div>
               </section>
             )}
+
+            <section className="mt-6">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">{t("petHistory.sectionTitle")}</h3>
+                <Link
+                  to={`/pet-history?pet=${encodeURIComponent(pet.id)}`}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  {t("petHistory.viewFull")}
+                </Link>
+              </div>
+              <div className="mt-3 rounded-xl border border-border bg-muted/30 p-3">
+                <PetHistoryTimeline
+                  events={petHistory.slice(0, 3)}
+                  emptyMessage={t("petHistory.emptyMessage")}
+                />
+              </div>
+            </section>
 
             <div className="mt-auto space-y-3 border-t border-border pt-5">
               {submitted ? (

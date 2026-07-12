@@ -44,7 +44,7 @@ function spreadAroundShelter(lat: number, lng: number, id: string) {
 }
 
 export function MapPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [pets, setPets] = useState<PetListing[]>([]);
   const [filter, setFilter] = useState<"All" | PetListing["species"]>("All");
   const [query, setQuery] = useState("");
@@ -53,7 +53,7 @@ export function MapPage() {
 
   useEffect(() => {
     getPetPickupLocations().then(setPets);
-  }, []);
+  }, [locale]);
 
   const places = useMemo(() => {
     return pets

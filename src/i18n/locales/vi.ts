@@ -232,6 +232,7 @@ export const vi = {
       medical: "Y tế",
       ownership: "Sở hữu",
       note: "Ghi chú",
+      postAdoption: "Check-in sau nhận nuôi",
     },
     events: {
       g1: { title: "Đã được nhận nuôi bởi Sofia Nguyen", description: "Buổi kiểm tra nhà thành công và hợp đồng nhận nuôi đã ký." },
@@ -242,7 +243,16 @@ export const vi = {
       g6: { title: "Được đưa vào danh sách nhận nuôi", description: "Nhập từ chương trình chuyển tiếp từ trung tâm cứu hộ địa phương." },
       g7: { title: "Phẫu thuật triệt sản", description: "Triệt sản định kỳ, hồi phục bình thường." },
       g8: { title: "Chuỗi tiêm FVRCP cho mèo con", description: "Đã tiêm liều thứ hai. Còn một mũi tăng cường." },
+      checkInSubmitted: {
+        title: "Đã gửi check-in",
+        description: "Báo cáo sức khỏe sau nhận nuôi đã được ghi lại.",
+      },
+      checkInScheduled: {
+        title: "Check-in được lên lịch",
+        description: "Buổi theo dõi sau nhận nuôi sắp được thực hiện.",
+      },
     },
+    checkInPhotoAlt: "Ảnh từ check-in của {pet}",
   },
   notFound: {
     title: "Không tìm thấy trang",

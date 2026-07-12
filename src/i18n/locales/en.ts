@@ -234,6 +234,7 @@ export const en: TranslationDict = {
       medical: "Medical",
       ownership: "Ownership",
       note: "Note",
+      postAdoption: "Post-adoption check-in",
     },
     events: {
       g1: { title: "Adopted by Sofia Nguyen", description: "Successful home visit and adoption contract signed." },
@@ -244,7 +245,16 @@ export const en: TranslationDict = {
       g6: { title: "Listed for adoption", description: "Intake from municipal shelter transfer program." },
       g7: { title: "Neuter surgery", description: "Routine neuter, recovery uneventful." },
       g8: { title: "FVRCP kitten series", description: "Second dose administered. One booster remaining." },
+      checkInSubmitted: {
+        title: "Check-in submitted",
+        description: "A post-adoption health report was logged.",
+      },
+      checkInScheduled: {
+        title: "Scheduled check-in",
+        description: "Upcoming post-adoption follow-up is planned.",
+      },
     },
+    checkInPhotoAlt: "Photo from {pet} check-in",
   },
   notFound: {
     title: "Page not found",

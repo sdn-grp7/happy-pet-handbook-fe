@@ -216,6 +216,8 @@ export const vi = {
     openFullHistory: "Mở toàn bộ lịch sử",
     petHistoryDescription: "Theo dõi các cập nhật về tiêm phòng, y tế, quyền sở hữu và ghi chú cho thú cưng đã nhận nuôi.",
     postAdoptionCheckIns: "Check-in sau nhận nuôi",
+    noHistoryYet: "Chưa có lịch sử",
+    historyRecords: "mục lịch sử",
   },
   petHistory: {
     title: "Lịch sử thú cưng",

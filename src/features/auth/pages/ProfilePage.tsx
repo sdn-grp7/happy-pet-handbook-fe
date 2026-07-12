@@ -3,6 +3,8 @@ import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import { getAdoptionRequests } from "@/features/adoption/api/adoptionApi";
+import { getPetHistory } from "@/features/pet-history/api/petHistoryApi";
+import type { PetHistoryEvent } from "@/features/pet-history/types";
 import { getReputation } from "@/features/reputation/api/reputationApi";
 import { uploadAvatarToCloudinary } from "@/features/auth/api/avatarApi";
 import type { AdoptionRequest } from "@/features/adoption/types";
@@ -17,6 +19,7 @@ export function ProfilePage() {
   const account = user!;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [adoptions, setAdoptions] = useState<AdoptionRequest[]>([]);
+  const [historyByPet, setHistoryByPet] = useState<Record<string, PetHistoryEvent[]>>({});
   const [reputation, setReputation] = useState<ReputationProfile | undefined>();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -25,6 +28,27 @@ export function ProfilePage() {
     getAdoptionRequests(account.id).then(setAdoptions);
     getReputation(account.id).then(setReputation);
   }, [account.id]);
+
+  useEffect(() => {
+    let active = true;
+    if (adoptions.length === 0) {
+      setHistoryByPet({});
+      return;
+    }
+
+    Promise.all(
+      adoptions.map((adoption) =>
+        getPetHistory(adoption.petId).then((events) => ({ petId: adoption.petId, events })),
+      ),
+    ).then((results) => {
+      if (!active) return;
+      setHistoryByPet(Object.fromEntries(results.map((item) => [item.petId, item.events])));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [adoptions]);
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -148,6 +172,11 @@ export function ProfilePage() {
                     <span className="text-xs uppercase tracking-wide text-primary">{a.status}</span>
                   </div>
                   <p className="mt-1 text-muted-foreground line-clamp-2">{a.message}</p>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {historyByPet[a.petId]?.length
+                      ? `${historyByPet[a.petId].length} ${t("profile.historyRecords")}`
+                      : t("profile.noHistoryYet")}
+                  </div>
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <span className="text-xs text-muted-foreground">{t("profile.trackUpdates")}</span>
                     <Link

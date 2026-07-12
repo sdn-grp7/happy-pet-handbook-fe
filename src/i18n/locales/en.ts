@@ -218,6 +218,8 @@ export const en: TranslationDict = {
     openFullHistory: "Open full history",
     petHistoryDescription: "Follow vaccination, medical, ownership, and note updates for pets you adopted.",
     postAdoptionCheckIns: "Post-adoption check-ins",
+    noHistoryYet: "No history yet",
+    historyRecords: "history records",
   },
   petHistory: {
     title: "Pet history",

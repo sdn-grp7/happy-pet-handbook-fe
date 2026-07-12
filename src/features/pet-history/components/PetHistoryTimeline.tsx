@@ -1,13 +1,16 @@
 import { Syringe, FileText, Users, StickyNote } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import type { PetHistoryEvent, HistoryEventType } from "@/features/pet-history/types";
+import { useI18n, type TranslationKey } from "@/i18n/I18nContext";
+import { getPet } from "@/features/pets/api/petsApi";
 
-const TYPE_META: Record<HistoryEventType, { icon: typeof Syringe; label: string; color: string }> =
-  {
-    vaccination: { icon: Syringe, label: "Vaccination", color: "#10b981" },
-    medical: { icon: FileText, label: "Medical", color: "#ef4444" },
-    ownership: { icon: Users, label: "Ownership", color: "#8b5cf6" },
-    note: { icon: StickyNote, label: "Note", color: "#f59e0b" },
-  };
+const TYPE_META: Record<HistoryEventType, { icon: typeof Syringe; color: string }> = {
+  vaccination: { icon: Syringe, color: "#10b981" },
+  medical: { icon: FileText, color: "#ef4444" },
+  ownership: { icon: Users, color: "#8b5cf6" },
+  note: { icon: StickyNote, color: "#f59e0b" },
+};
 
 type PetHistoryTimelineProps = {
   events: PetHistoryEvent[];
@@ -16,10 +19,34 @@ type PetHistoryTimelineProps = {
 
 export function PetHistoryTimeline({
   events,
-  emptyMessage = "No history records for this pet yet.",
+  emptyMessage,
 }: PetHistoryTimelineProps) {
+  const { t } = useI18n();
+  const resolvedEmptyMessage = emptyMessage ?? t("petHistory.emptyMessage");
+
+  const petIds = useMemo(() => Array.from(new Set(events.map((e) => e.petId).filter(Boolean))), [events]);
+  const [petNames, setPetNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let active = true;
+    if (petIds.length === 0) return;
+    Promise.all(petIds.map((id) => getPet(id).then((p) => ({ id, name: p?.name ?? id }))))
+      .then((results) => {
+        if (!active) return;
+        const map: Record<string, string> = {};
+        for (const r of results) map[r.id] = r.name;
+        setPetNames(map);
+      })
+      .catch(() => {
+        /* ignore */
+      });
+    return () => {
+      active = false;
+    };
+  }, [petIds]);
+
   if (events.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+    return <p className="text-sm text-muted-foreground">{resolvedEmptyMessage}</p>;
   }
 
   return (
@@ -27,6 +54,9 @@ export function PetHistoryTimeline({
       {events.map((e) => {
         const meta = TYPE_META[e.type];
         const Icon = meta.icon;
+        const title = e.titleKey ? t(e.titleKey as TranslationKey) : e.title;
+        const description = e.descriptionKey ? t(e.descriptionKey as TranslationKey) : e.description;
+        const typeLabel = t(`petHistory.types.${e.type}` as TranslationKey);
         return (
           <li key={e.id} className="ml-6">
             <span
@@ -36,9 +66,22 @@ export function PetHistoryTimeline({
               <Icon className="h-3 w-3" />
             </span>
             <time className="text-xs text-muted-foreground">{e.date}</time>
-            <div className="mt-0.5 font-medium">{e.title}</div>
-            <p className="text-sm text-muted-foreground mt-1">{e.description}</p>
-            <p className="text-xs text-muted-foreground mt-1">Recorded by {e.recordedBy}</p>
+            <div className="mt-0.5 font-medium">
+              {title}
+              {events.length > 1 && e.petId && (
+                <span className="ml-2 text-sm text-muted-foreground">—</span>
+              )}
+            </div>
+            {events.length > 1 && e.petId && (
+              <div className="text-sm mt-1">
+                <Link to={`/adoption?pet=${encodeURIComponent(e.petId)}`} className="font-medium text-primary hover:underline">
+                  {petNames[e.petId] ?? e.petId}
+                </Link>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("petHistory.recordedBy", { name: e.recordedBy })}</p>
+            <p className="text-xs text-muted-foreground mt-1">{typeLabel}</p>
           </li>
         );
       })}

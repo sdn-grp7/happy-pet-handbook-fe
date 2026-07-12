@@ -12,6 +12,7 @@ import { ProfilePage } from "@/features/auth/pages/ProfilePage";
 import { AdoptionPage } from "@/features/adoption/pages/AdoptionPage";
 import { PetDetailPage } from "@/features/pets/pages/PetDetailPage";
 import { ReputationPage } from "@/features/reputation/pages/ReputationPage";
+import { PetHistoryPage } from "@/features/pet-history/pages/PetHistoryPage";
 import { PostAdoptionPage } from "@/features/post-adoption/pages/PostAdoptionPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
@@ -51,7 +52,7 @@ export default function App() {
               </RequireAuth>
             }
           />
-          <Route path="pet-history" element={<Navigate to="/adoption" replace />} />
+          <Route path="pet-history" element={<PetHistoryPage />} />
           <Route
             path="post-adoption"
             element={

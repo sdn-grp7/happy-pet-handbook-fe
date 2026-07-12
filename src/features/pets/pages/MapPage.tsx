@@ -44,7 +44,7 @@ function spreadAroundShelter(lat: number, lng: number, id: string) {
 }
 
 export function MapPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [pets, setPets] = useState<PetListing[]>([]);
   const [filter, setFilter] = useState<"All" | PetListing["species"]>("All");
   const [query, setQuery] = useState("");
@@ -53,7 +53,7 @@ export function MapPage() {
 
   useEffect(() => {
     getPetPickupLocations().then(setPets);
-  }, []);
+  }, [locale]);
 
   const places = useMemo(() => {
     return pets
@@ -130,11 +130,10 @@ export function MapPage() {
               <button
                 key={c}
                 onClick={() => setFilter(c)}
-                className={`px-3 py-1.5 rounded-full text-sm border transition capitalize ${
-                  filter === c
+                className={`px-3 py-1.5 rounded-full text-sm border transition capitalize ${filter === c
                     ? "bg-primary text-primary-foreground border-transparent"
                     : "bg-card border-border text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 {c === "All" ? t("forum.all") : c}
               </button>
@@ -207,11 +206,10 @@ export function MapPage() {
                     listRefs.current[p.id] = el;
                   }}
                   onClick={() => handleSelect(p.id)}
-                  className={`w-full text-left rounded-xl border p-4 transition shadow-[var(--shadow-card)] ${
-                    isActive
+                  className={`w-full text-left rounded-xl border p-4 transition shadow-[var(--shadow-card)] ${isActive
                       ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                       : "border-border bg-card hover:border-primary/40"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     <PetImage

@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
 import type { User } from "@/features/auth/types";
 import {
   fetchMe,
@@ -12,6 +19,7 @@ import { ApiError } from "@/lib/api";
 
 const TOKEN_STORAGE_KEY = "pawpath-token-v1";
 const AUTH_STORAGE_KEY = "pawpath-auth-v1";
+const AVATAR_STORAGE_KEY = "pawpath-avatar-v1";
 
 type AuthContextValue = {
   user: User | null;
@@ -59,10 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (nextToken && nextUser) {
       localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
+      if (nextUser.avatar) localStorage.setItem(AVATAR_STORAGE_KEY, nextUser.avatar);
+      else localStorage.removeItem(AVATAR_STORAGE_KEY);
     } else {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
       localStorage.removeItem(AUTH_STORAGE_KEY);
-      localStorage.removeItem("pawpath-avatar-v1");
+      localStorage.removeItem(AVATAR_STORAGE_KEY);
     }
   }, []);
 

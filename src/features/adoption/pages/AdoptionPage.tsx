@@ -17,7 +17,7 @@ const STATUS_KEYS: Record<PetListing["status"], TranslationKey> = {
 };
 
 export function AdoptionPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const [pets, setPets] = useState<PetListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,11 +26,12 @@ export function AdoptionPage() {
   const petId = searchParams.get("pet");
 
   useEffect(() => {
+    setLoading(true);
     getAvailablePetListings().then((data) => {
       setPets(data);
       setLoading(false);
     });
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (!petId) {

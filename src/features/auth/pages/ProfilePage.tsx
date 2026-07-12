@@ -134,6 +134,7 @@ export function ProfilePage() {
               type="file"
               accept="image/*"
               className="hidden"
+              aria-label={t("profile.uploadAvatar")}
               onChange={handleAvatarChange}
             />
           </div>
@@ -260,9 +261,9 @@ export function ProfilePage() {
         {reputation && (
           <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Reputation</h3>
+              <h3 className="font-semibold">{t("profile.reputation")}</h3>
               <Link to="/reputation" className="text-sm text-primary hover:underline">
-                View all profiles
+                {t("profile.viewAllProfiles")}
               </Link>
             </div>
             <div className="mt-3 flex items-center gap-2">
@@ -277,13 +278,13 @@ export function ProfilePage() {
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">My adoption requests</h3>
+            <h3 className="font-semibold">{t("profile.myAdoptionRequests")}</h3>
             <Link to="/adoption" className="text-sm text-primary hover:underline">
-              Browse pets
+              {t("profile.browsePets")}
             </Link>
           </div>
           {adoptions.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">No adoption requests yet.</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t("profile.noAdoptionRequests")}</p>
           ) : (
             <ul className="mt-4 space-y-3">
               {adoptions.map((a) => (
@@ -293,15 +294,34 @@ export function ProfilePage() {
                     <span className="text-xs uppercase tracking-wide text-primary">{a.status}</span>
                   </div>
                   <p className="mt-1 text-muted-foreground line-clamp-2">{a.message}</p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">{t("profile.trackUpdates")}</span>
+                    <Link
+                      to={`/pet-history?pet=${encodeURIComponent(a.petId)}`}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      {t("profile.viewHistory")}
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">{t("profile.petHistory")}</h3>
+            <Link to="/pet-history" className="text-sm text-primary hover:underline">
+              {t("profile.openFullHistory")}
+            </Link>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">{t("profile.petHistoryDescription")}</p>
+        </div>
+
         <div className="text-sm">
           <Link to="/post-adoption" className="text-primary hover:underline">
-            Post-adoption check-ins →
+            {t("profile.postAdoptionCheckIns")} →
           </Link>
         </div>
       </section>

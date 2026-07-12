@@ -5,7 +5,9 @@ export interface PetHistoryEvent {
   petId: string;
   type: HistoryEventType;
   title: string;
+  titleKey?: string;
   description: string;
+  descriptionKey?: string;
   date: string;
   recordedBy: string;
 }

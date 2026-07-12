@@ -14,8 +14,11 @@ import {
   CalendarCheck,
   LogOut,
   LogIn,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useTheme } from "@/components/ThemeProvider";
 import { useI18n } from "@/i18n/I18nContext";
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher";
 import { getGivenName } from "@/lib/utils";
@@ -63,6 +66,7 @@ function DesktopNavLink({ to, label, active }: { to: string; label: string; acti
 
 export function SiteLayout() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -223,6 +227,16 @@ export function SiteLayout() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              aria-label={theme === "dark" ? t("common.switchToLight") : t("common.switchToDark")}
+              onClick={toggleTheme}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
             <LanguageSwitcher />
 
             {user ? (
@@ -425,6 +439,16 @@ export function SiteLayout() {
                   <div className="flex items-center justify-between gap-2 px-1">
                     <span className="text-sm text-muted-foreground">{t("common.language")}</span>
                     <LanguageSwitcher />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-1">
+                    <span className="text-sm text-muted-foreground">{t("common.theme")}</span>
+                    <Button type="button" variant="outline" size="sm" onClick={toggleTheme}>
+                      {theme === "dark" ? (
+                        <Sun className="h-4 w-4" />
+                      ) : (
+                        <Moon className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                   {user ? (
                     <div className="space-y-3">

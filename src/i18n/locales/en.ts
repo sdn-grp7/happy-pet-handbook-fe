@@ -228,7 +228,8 @@ export const en: TranslationDict = {
     viewHistory: "View history",
     petHistory: "Pet history",
     openFullHistory: "Open full history",
-    petHistoryDescription: "Follow vaccination, medical, ownership, and note updates for pets you adopted.",
+    petHistoryDescription:
+      "Follow vaccination, medical, ownership, and note updates for pets you adopted.",
     postAdoptionCheckIns: "Post-adoption check-ins",
   },
   petHistory: {
@@ -248,14 +249,29 @@ export const en: TranslationDict = {
       note: "Note",
     },
     events: {
-      g1: { title: "Adopted by Sofia Nguyen", description: "Successful home visit and adoption contract signed." },
-      g2: { title: "Rabies booster", description: "Annual rabies vaccination administered at Westside Animal Hospital." },
+      g1: {
+        title: "Adopted by Sofia Nguyen",
+        description: "Successful home visit and adoption contract signed.",
+      },
+      g2: {
+        title: "Rabies booster",
+        description: "Annual rabies vaccination administered at Westside Animal Hospital.",
+      },
       g3: { title: "Hip check — clear", description: "Routine orthopedic exam. No issues noted." },
-      g4: { title: "First beach visit", description: "Owner notes: cautious near waves but loved sand zoomies afterward." },
+      g4: {
+        title: "First beach visit",
+        description: "Owner notes: cautious near waves but loved sand zoomies afterward.",
+      },
       g5: { title: "DHPP series complete", description: "Final puppy vaccination in series." },
-      g6: { title: "Listed for adoption", description: "Intake from municipal shelter transfer program." },
+      g6: {
+        title: "Listed for adoption",
+        description: "Intake from municipal shelter transfer program.",
+      },
       g7: { title: "Neuter surgery", description: "Routine neuter, recovery uneventful." },
-      g8: { title: "FVRCP kitten series", description: "Second dose administered. One booster remaining." },
+      g8: {
+        title: "FVRCP kitten series",
+        description: "Second dose administered. One booster remaining.",
+      },
     },
   },
   notFound: {

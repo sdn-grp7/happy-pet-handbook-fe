@@ -295,7 +295,9 @@ export function ProfilePage() {
                   </div>
                   <p className="mt-1 text-muted-foreground line-clamp-2">{a.message}</p>
                   <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">{t("profile.trackUpdates")}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("profile.trackUpdates")}
+                    </span>
                     <Link
                       to={`/pet-history?pet=${encodeURIComponent(a.petId)}`}
                       className="text-sm font-medium text-primary hover:underline"

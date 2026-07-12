@@ -17,14 +17,14 @@ type PetHistoryTimelineProps = {
   emptyMessage?: string;
 };
 
-export function PetHistoryTimeline({
-  events,
-  emptyMessage,
-}: PetHistoryTimelineProps) {
+export function PetHistoryTimeline({ events, emptyMessage }: PetHistoryTimelineProps) {
   const { t } = useI18n();
   const resolvedEmptyMessage = emptyMessage ?? t("petHistory.emptyMessage");
 
-  const petIds = useMemo(() => Array.from(new Set(events.map((e) => e.petId).filter(Boolean))), [events]);
+  const petIds = useMemo(
+    () => Array.from(new Set(events.map((e) => e.petId).filter(Boolean))),
+    [events],
+  );
   const [petNames, setPetNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -55,7 +55,9 @@ export function PetHistoryTimeline({
         const meta = TYPE_META[e.type];
         const Icon = meta.icon;
         const title = e.titleKey ? t(e.titleKey as TranslationKey) : e.title;
-        const description = e.descriptionKey ? t(e.descriptionKey as TranslationKey) : e.description;
+        const description = e.descriptionKey
+          ? t(e.descriptionKey as TranslationKey)
+          : e.description;
         const typeLabel = t(`petHistory.types.${e.type}` as TranslationKey);
         return (
           <li key={e.id} className="ml-6">
@@ -74,13 +76,18 @@ export function PetHistoryTimeline({
             </div>
             {events.length > 1 && e.petId && (
               <div className="text-sm mt-1">
-                <Link to={`/adoption?pet=${encodeURIComponent(e.petId)}`} className="font-medium text-primary hover:underline">
+                <Link
+                  to={`/adoption?pet=${encodeURIComponent(e.petId)}`}
+                  className="font-medium text-primary hover:underline"
+                >
                   {petNames[e.petId] ?? e.petId}
                 </Link>
               </div>
             )}
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("petHistory.recordedBy", { name: e.recordedBy })}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("petHistory.recordedBy", { name: e.recordedBy })}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">{typeLabel}</p>
           </li>
         );

@@ -63,9 +63,7 @@ export function PetHistoryTimeline({ events, emptyMessage }: PetHistoryTimelineP
         return (
           <li key={e.id} className="ml-6">
             <span
-              className={
-                `absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full text-white ${meta.bgClass}`
-              }
+              className={`absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full text-white ${meta.bgClass}`}
             >
               <Icon className="h-3 w-3" />
             </span>

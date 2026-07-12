@@ -5,22 +5,17 @@ import type { PostAdoptionCheckIn } from "@/features/post-adoption/types";
 import { delay } from "@/shared/lib/delay";
 
 function mapCheckInToHistoryEvent(checkIn: PostAdoptionCheckIn): PetHistoryEvent {
+  const isSubmitted = checkIn.status === "submitted";
   return {
     id: `ci-${checkIn.id}`,
     petId: checkIn.petId,
     type: "postAdoption",
-    titleKey:
-      checkIn.status === "submitted"
-        ? "petHistory.events.checkInSubmitted.title"
-        : "petHistory.events.checkInScheduled.title",
-    description:
-      checkIn.status === "submitted"
-        ? checkIn.healthReport ?? ""
-        : "",
-    descriptionKey:
-      checkIn.status === "submitted"
-        ? undefined
-        : "petHistory.events.checkInScheduled.description",
+    title: isSubmitted ? "Check-in submitted" : "Scheduled check-in",
+    titleKey: isSubmitted
+      ? "petHistory.events.checkInSubmitted.title"
+      : "petHistory.events.checkInScheduled.title",
+    description: isSubmitted ? (checkIn.healthReport ?? "") : "",
+    descriptionKey: isSubmitted ? undefined : "petHistory.events.checkInScheduled.description",
     date: checkIn.submittedAt ?? checkIn.scheduledAt,
     recordedBy: "Adopter",
     photoUrl: checkIn.photoUrl,

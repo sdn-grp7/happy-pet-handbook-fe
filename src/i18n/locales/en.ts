@@ -205,6 +205,8 @@ export const en: TranslationDict = {
     eyebrow: "Account",
     title: "Your profile",
     subtitle: "Manage your info, adoption requests, and trust score.",
+    uploadAvatar: "Upload avatar",
+    uploadAvatarHint: "Choose an image from your device",
   },
   notFound: {
     title: "Page not found",
@@ -231,5 +233,8 @@ export const en: TranslationDict = {
   common: {
     loading: "Loading…",
     language: "Language",
+    theme: "Theme",
+    switchToLight: "Switch to light mode",
+    switchToDark: "Switch to dark mode",
   },
 };

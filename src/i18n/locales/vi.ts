@@ -203,6 +203,8 @@ export const vi = {
     eyebrow: "Tài khoản",
     title: "Hồ sơ của bạn",
     subtitle: "Quản lý thông tin, yêu cầu nhận nuôi và điểm tin cậy.",
+    uploadAvatar: "Tải ảnh đại diện",
+    uploadAvatarHint: "Chọn ảnh từ máy của bạn",
   },
   notFound: {
     title: "Không tìm thấy trang",
@@ -229,6 +231,9 @@ export const vi = {
   common: {
     loading: "Đang tải…",
     language: "Ngôn ngữ",
+    theme: "Giao diện",
+    switchToLight: "Chuyển sang sáng",
+    switchToDark: "Chuyển sang tối",
   },
 } as const;
 

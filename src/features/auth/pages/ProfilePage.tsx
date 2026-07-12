@@ -1,26 +1,48 @@
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAdoptionRequests } from "@/features/adoption/api/adoptionApi";
 import { getReputation } from "@/features/reputation/api/reputationApi";
+import { uploadAvatarToCloudinary } from "@/features/auth/api/avatarApi";
 import type { AdoptionRequest } from "@/features/adoption/types";
 import type { ReputationProfile } from "@/features/reputation/types";
 import { useI18n } from "@/i18n/I18nContext";
 import { Link } from "react-router-dom";
-import { User, LogOut, Shield, Star } from "lucide-react";
+import { User, LogOut, Shield, Star, Camera, Loader2 } from "lucide-react";
 
 export function ProfilePage() {
   const { t } = useI18n();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const account = user!;
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [adoptions, setAdoptions] = useState<AdoptionRequest[]>([]);
   const [reputation, setReputation] = useState<ReputationProfile | undefined>();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   useEffect(() => {
     getAdoptionRequests(account.id).then(setAdoptions);
     getReputation(account.id).then(setReputation);
   }, [account.id]);
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploadingAvatar(true);
+    setAvatarError(null);
+
+    try {
+      const avatarUrl = await uploadAvatarToCloudinary(file);
+      updateUser({ ...user, avatar: avatarUrl });
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : "Unable to update avatar.");
+    } finally {
+      setUploadingAvatar(false);
+      event.target.value = "";
+    }
+  };
 
   return (
     <>
@@ -35,17 +57,39 @@ export function ProfilePage() {
       />
       <section className="max-w-3xl mx-auto px-6 py-12 space-y-6">
         <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] flex items-start gap-4">
-          {account.avatar ? (
-            <img
-              src={account.avatar}
-              alt=""
-              className="h-16 w-16 rounded-full border border-border"
+          <div className="relative">
+            {account.avatar ? (
+              <img
+                src={account.avatar}
+                alt=""
+                className="h-16 w-16 rounded-full border border-border object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <User className="h-8 w-8 text-muted-foreground" />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute bottom-0 right-0 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm disabled:opacity-60"
+              aria-label={t("profile.uploadAvatar")}
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
             />
-          ) : (
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-              <User className="h-8 w-8 text-muted-foreground" />
-            </div>
-          )}
+          </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-semibold">{account.name}</h2>
             <p className="text-sm text-muted-foreground">{account.email}</p>
@@ -57,6 +101,7 @@ export function ProfilePage() {
                 <span className="rounded-full bg-muted px-2 py-0.5">Google linked</span>
               )}
             </div>
+            {avatarError && <p className="mt-2 text-sm text-destructive">{avatarError}</p>}
           </div>
           <button
             onClick={logout}

@@ -1,5 +1,6 @@
 import {
   mockPets,
+  getLocalizedPets,
   getPetById,
   getAvailablePets,
   getPickupLocations,
@@ -9,7 +10,7 @@ import { delay } from "@/shared/lib/delay";
 
 export async function getPets(): Promise<PetListing[]> {
   await delay();
-  return mockPets;
+  return getLocalizedPets(mockPets);
 }
 
 export async function getAvailablePetListings(): Promise<PetListing[]> {

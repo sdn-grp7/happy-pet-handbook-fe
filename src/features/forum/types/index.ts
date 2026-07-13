@@ -3,6 +3,7 @@ export interface FeedComment {
   postId?: string;
   authorId?: string;
   authorDisplayName: string;
+  authorAvatar?: string;
   content: string;
   createdAt: string;
   updatedAt?: string;
@@ -12,6 +13,7 @@ export interface FeedPost {
   _id: string;
   authorId?: string;
   authorDisplayName: string;
+  authorAvatar?: string;
   content: string;
   imageUrls: string[];
   tags: string[];

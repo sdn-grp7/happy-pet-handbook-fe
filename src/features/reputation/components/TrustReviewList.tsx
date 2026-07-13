@@ -24,9 +24,7 @@ export function TrustReviewList({ reviews }: TrustReviewListProps) {
   const list = uniqueByReviewer(reviews);
 
   if (list.length === 0) {
-    return (
-      <p className="mt-3 text-sm text-muted-foreground">{t("publicProfile.noReviewsYet")}</p>
-    );
+    return <p className="mt-3 text-sm text-muted-foreground">{t("publicProfile.noReviewsYet")}</p>;
   }
 
   return (
@@ -40,11 +38,7 @@ export function TrustReviewList({ reviews }: TrustReviewListProps) {
               aria-label={r.reviewerName}
             >
               {r.reviewerAvatar ? (
-                <img
-                  src={r.reviewerAvatar}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+                <img src={r.reviewerAvatar} alt="" className="h-full w-full object-cover" />
               ) : (
                 <span className="text-sm font-semibold text-muted-foreground">
                   {r.reviewerName.slice(0, 1)}
@@ -63,9 +57,7 @@ export function TrustReviewList({ reviews }: TrustReviewListProps) {
                   <Star
                     key={i}
                     className={`h-3.5 w-3.5 ${
-                      i < r.rating
-                        ? "fill-amber-500 text-amber-500"
-                        : "text-muted-foreground/30"
+                      i < r.rating ? "fill-amber-500 text-amber-500" : "text-muted-foreground/30"
                     }`}
                   />
                 ))}
@@ -77,11 +69,7 @@ export function TrustReviewList({ reviews }: TrustReviewListProps) {
                   className="inline-flex items-center gap-1 font-medium text-primary/90 hover:underline"
                 >
                   {r.petImage ? (
-                    <img
-                      src={r.petImage}
-                      alt=""
-                      className="h-5 w-5 rounded object-cover"
-                    />
+                    <img src={r.petImage} alt="" className="h-5 w-5 rounded object-cover" />
                   ) : (
                     <PawPrint className="h-3.5 w-3.5" />
                   )}
@@ -89,9 +77,7 @@ export function TrustReviewList({ reviews }: TrustReviewListProps) {
                   <span className="font-normal text-muted-foreground">#{r.petCode}</span>
                 </Link>
               </p>
-              {r.comment ? (
-                <p className="mt-2 text-muted-foreground">{r.comment}</p>
-              ) : null}
+              {r.comment ? <p className="mt-2 text-muted-foreground">{r.comment}</p> : null}
             </div>
           </div>
         </li>

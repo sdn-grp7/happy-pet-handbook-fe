@@ -5,4 +5,6 @@ export interface ContactMessage {
   message: string;
   createdAt: string;
   status: "new" | "resolved";
+  resolvedAt?: string;
+  updatedAt?: string;
 }

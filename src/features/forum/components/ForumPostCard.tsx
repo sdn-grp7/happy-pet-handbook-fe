@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { ForumImageUploader } from "@/features/forum/components/ForumImageUploader";
+import { ForumTagPicker } from "@/features/forum/components/ForumTagPicker";
 import { cn } from "@/lib/utils";
 import type { FeedComment, FeedPost } from "@/features/forum/types";
 
@@ -13,24 +15,41 @@ const TEXT = {
   delete: "X\u00f3a",
   save: "L\u01b0u",
   cancel: "H\u1ee7y",
-  tags: "Tag, c\u00e1ch nhau b\u1eb1ng d\u1ea5u ph\u1ea9y",
-  images: "URL \u1ea3nh, m\u1ed7i d\u00f2ng m\u1ed9t link",
+  tags: "Ch\u1ecdn tag",
   content: "N\u1ed9i dung b\u00e0i vi\u1ebft",
   comments: "B\u00ecnh lu\u1eadn",
   hideComments: "\u1ea8n b\u00ecnh lu\u1eadn",
   noComments: "Ch\u01b0a c\u00f3 b\u00ecnh lu\u1eadn n\u00e0o.",
   commentPlaceholder: "Vi\u1ebft b\u00ecnh lu\u1eadn...",
   signInToComment: "\u0110\u0103ng nh\u1eadp \u0111\u1ec3 b\u00ecnh lu\u1eadn.",
+  moreComments: "...",
+  addImages: "Th\u00eam \u1ea3nh",
+  uploading: "\u0110ang t\u1ea3i l\u00ean...",
+  imageHint: "T\u1ed1i \u0111a 4 \u1ea3nh, upload qua Cloudinary.",
+  removeImage: "X\u00f3a \u1ea3nh",
 };
 
 export type ForumPostDraft = {
   content: string;
-  tagsText: string;
-  imageUrlsText: string;
+  tags: string[];
+  imageUrls: string[];
 };
 
-function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
+function Avatar({ name, src, size = "md" }: { name: string; src?: string; size?: "sm" | "md" }) {
   const dim = size === "sm" ? "h-8 w-8 text-xs" : "h-10 w-10 text-sm";
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        className={cn(dim, "shrink-0 rounded-full object-cover")}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -52,6 +71,25 @@ function formatStamp(iso: string) {
   }
 }
 
+function CommentPreviewItem({ comment }: { comment: FeedComment }) {
+  return (
+    <li className="flex gap-2">
+      <Avatar name={comment.authorDisplayName} src={comment.authorAvatar} size="sm" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2">
+          <span className="text-xs font-semibold text-foreground">{comment.authorDisplayName}</span>
+          <span className="text-[10px] text-muted-foreground">
+            {formatStamp(comment.createdAt)}
+          </span>
+        </div>
+        <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs leading-relaxed text-foreground/80">
+          {comment.content}
+        </p>
+      </div>
+    </li>
+  );
+}
+
 type ForumPostCardProps = {
   post: FeedPost;
   comments: FeedComment[];
@@ -69,6 +107,7 @@ type ForumPostCardProps = {
   editingCommentId: string | null;
   commentEditDraft: string;
   commentBusyId: string | null;
+  uploadToken: string | null;
   topicLabel: (topic: string) => string;
   canEditComment: (comment: FeedComment) => boolean;
   onToggleComments: () => void;
@@ -108,6 +147,7 @@ export function ForumPostCard({
   editingCommentId,
   commentEditDraft,
   commentBusyId,
+  uploadToken,
   topicLabel,
   canEditComment,
   onToggleComments,
@@ -130,6 +170,8 @@ export function ForumPostCard({
   const tags = post.tags ?? [];
   const visibleImages = post.imageUrls.slice(0, 4);
   const hiddenImageCount = Math.max(post.imageUrls.length - visibleImages.length, 0);
+  const previewComments = comments.slice(0, 3);
+  const hasMoreComments = post.commentsCount > 3 || comments.length > 3;
 
   const submitPostEdit = (event: FormEvent) => {
     event.preventDefault();
@@ -145,7 +187,7 @@ export function ForumPostCard({
     <article className="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]">
       <div className={cn("p-5", compact && "p-4")}>
         <header className="flex items-start gap-3">
-          <Avatar name={post.authorDisplayName} />
+          <Avatar name={post.authorDisplayName} src={post.authorAvatar} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-semibold text-foreground">{post.authorDisplayName}</span>
@@ -204,20 +246,26 @@ export function ForumPostCard({
               placeholder={TEXT.content}
               className="min-h-[112px]"
             />
-            <Input
-              value={postEditDraft.tagsText}
-              onChange={(event) =>
-                onPostEditDraftChange({ ...postEditDraft, tagsText: event.target.value })
-              }
-              placeholder={TEXT.tags}
-            />
-            <Textarea
-              value={postEditDraft.imageUrlsText}
-              onChange={(event) =>
-                onPostEditDraftChange({ ...postEditDraft, imageUrlsText: event.target.value })
-              }
-              placeholder={TEXT.images}
-              className="min-h-[76px]"
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">{TEXT.tags}</p>
+              <ForumTagPicker
+                value={postEditDraft.tags}
+                onChange={(next) => onPostEditDraftChange({ ...postEditDraft, tags: next })}
+                topicLabel={topicLabel}
+                disabled={postBusy}
+              />
+            </div>
+            <ForumImageUploader
+              token={uploadToken}
+              value={postEditDraft.imageUrls}
+              onChange={(imageUrls) => onPostEditDraftChange({ ...postEditDraft, imageUrls })}
+              disabled={postBusy}
+              labels={{
+                add: TEXT.addImages,
+                uploading: TEXT.uploading,
+                hint: TEXT.imageHint,
+                remove: TEXT.removeImage,
+              }}
             />
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" size="sm" onClick={onCancelEditPost}>
@@ -309,6 +357,34 @@ export function ForumPostCard({
             {post.commentsCount} {labels.comments}
           </button>
         </div>
+
+        {!isCommentsOpen && post.commentsCount > 0 ? (
+          <div className="mt-4 min-h-[4.5rem] border-t border-border/70 pt-3">
+            {previewComments.length > 0 ? (
+              <>
+                <ul className="space-y-3">
+                  {previewComments.map((comment) => (
+                    <CommentPreviewItem key={comment._id} comment={comment} />
+                  ))}
+                </ul>
+                {hasMoreComments ? (
+                  <button
+                    type="button"
+                    onClick={onToggleComments}
+                    className="mt-2 text-sm font-medium tracking-widest text-muted-foreground hover:text-foreground"
+                  >
+                    {TEXT.moreComments}
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-4/5" />
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {isCommentsOpen ? (
@@ -338,7 +414,7 @@ export function ForumPostCard({
 
                 return (
                   <li key={comment._id} className="flex gap-2.5">
-                    <Avatar name={comment.authorDisplayName} size="sm" />
+                    <Avatar name={comment.authorDisplayName} src={comment.authorAvatar} size="sm" />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <span className="text-sm font-semibold">{comment.authorDisplayName}</span>

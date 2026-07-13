@@ -40,9 +40,7 @@ export function TrustRateForm({ item, onSaved, compact }: TrustRateFormProps) {
       setSaved(true);
       onSaved?.();
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : t("reputation.rateError"),
-      );
+      setError(err instanceof ApiError ? err.message : t("reputation.rateError"));
     } finally {
       setSaving(false);
     }
@@ -51,10 +49,7 @@ export function TrustRateForm({ item, onSaved, compact }: TrustRateFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn(
-        "rounded-xl border border-border bg-muted/20 p-4 space-y-3",
-        compact && "p-3",
-      )}
+      className={cn("rounded-xl border border-border bg-muted/20 p-4 space-y-3", compact && "p-3")}
     >
       <div className="text-sm">
         <p className="font-medium">
@@ -85,7 +80,9 @@ export function TrustRateForm({ item, onSaved, compact }: TrustRateFormProps) {
               onClick={() => setRating(value)}
               className="rounded p-0.5 text-amber-500 transition hover:scale-110"
             >
-              <Star className={cn("h-6 w-6", active ? "fill-current" : "text-muted-foreground/40")} />
+              <Star
+                className={cn("h-6 w-6", active ? "fill-current" : "text-muted-foreground/40")}
+              />
             </button>
           );
         })}

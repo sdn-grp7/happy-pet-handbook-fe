@@ -6,11 +6,7 @@ import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import {
-  addPetCheckIn,
-  addPetVaccination,
-  getPetsAdoptedBy,
-} from "@/features/pets/api/petsApi";
+import { addPetCheckIn, addPetVaccination, getPetsAdoptedBy } from "@/features/pets/api/petsApi";
 import { uploadCareImage } from "@/features/pets/api/uploadCareImage";
 import { breedLabelKey } from "@/features/pets/breedLabel";
 import { PetImage } from "@/features/pets/components/PetImage";
@@ -207,7 +203,9 @@ export function PostAdoptionPage() {
                       {t("postAdoption.checkInTitle")}
                     </h4>
                     <label className="block space-y-1 text-sm">
-                      <span className="text-muted-foreground">{t("postAdoption.checkInCaption")}</span>
+                      <span className="text-muted-foreground">
+                        {t("postAdoption.checkInCaption")}
+                      </span>
                       <textarea
                         rows={3}
                         value={ci.caption}
@@ -250,7 +248,11 @@ export function PostAdoptionPage() {
                       />
                     </label>
                     <Button type="submit" disabled={ciBusy} className="w-full gap-2 sm:w-auto">
-                      {ciBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                      {ciBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
                       {ciBusy ? t("common.loading") : t("postAdoption.submitCheckIn")}
                     </Button>
                   </form>
@@ -326,7 +328,9 @@ export function PostAdoptionPage() {
                       />
                     </label>
                     <label className="block space-y-1 text-sm">
-                      <span className="text-muted-foreground">{t("postAdoption.vaccinePhoto")}</span>
+                      <span className="text-muted-foreground">
+                        {t("postAdoption.vaccinePhoto")}
+                      </span>
                       <input
                         type="file"
                         accept="image/*"
@@ -339,8 +343,17 @@ export function PostAdoptionPage() {
                         className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary"
                       />
                     </label>
-                    <Button type="submit" disabled={vxBusy} variant="outline" className="w-full gap-2 sm:w-auto">
-                      {vxBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Syringe className="h-4 w-4" />}
+                    <Button
+                      type="submit"
+                      disabled={vxBusy}
+                      variant="outline"
+                      className="w-full gap-2 sm:w-auto"
+                    >
+                      {vxBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Syringe className="h-4 w-4" />
+                      )}
                       {vxBusy ? t("common.loading") : t("postAdoption.submitVaccine")}
                     </Button>
                   </form>

@@ -26,6 +26,7 @@ export const AUTH_PATHS = [
   "/admin",
   "/admin/guides",
   "/admin/adoption",
+  "/admin/contact",
 ] as const;
 
 export type GuestCapability =

@@ -59,7 +59,9 @@ export function AdoptionRequestCard({
 
           {mode !== "mine" ? (
             <p className="mt-2 text-muted-foreground">
-              <span className="font-medium text-foreground/80">{t("adoptionRequest.requester")}: </span>
+              <span className="font-medium text-foreground/80">
+                {t("adoptionRequest.requester")}:{" "}
+              </span>
               <Link
                 to={`/users/${encodeURIComponent(request.adopterId)}`}
                 className="text-primary hover:underline"

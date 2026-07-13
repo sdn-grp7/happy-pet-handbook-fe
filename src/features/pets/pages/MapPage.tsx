@@ -42,11 +42,7 @@ export function MapPage() {
       // Deep-link may point at adopted (or otherwise excluded) pets — still show on map.
       if (petFromUrl && !list.some((p) => petMatches(p, petFromUrl))) {
         const extra = await getPet(petFromUrl);
-        if (
-          extra?.pickup?.address &&
-          extra.pickup.lat != null &&
-          extra.pickup.lng != null
-        ) {
+        if (extra?.pickup?.address && extra.pickup.lat != null && extra.pickup.lng != null) {
           merged = [...list, extra];
         }
       }

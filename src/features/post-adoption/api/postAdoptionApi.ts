@@ -1,4 +1,3 @@
-import { mockAdoptionRequests } from "@/features/adoption/mocks/data";
 import { mockPostAdoptionCheckIns, getCheckInsByPetId } from "@/features/post-adoption/mocks/data";
 import type { PostAdoptionCheckIn } from "@/features/post-adoption/types";
 import { delay } from "@/shared/lib/delay";
@@ -10,11 +9,11 @@ export async function getPostAdoptionCheckIns(petId?: string): Promise<PostAdopt
 }
 
 export async function getPostAdoptionCheckInsForUser(
-  userId: string,
+  _userId: string,
 ): Promise<PostAdoptionCheckIn[]> {
   await delay();
-  const adoptionIds = mockAdoptionRequests.filter((a) => a.adopterId === userId).map((a) => a.id);
-  return mockPostAdoptionCheckIns.filter((c) => adoptionIds.includes(c.adoptionId));
+  // Post-adoption scheduling still mock; real check-ins live on ownership history.
+  return [];
 }
 
 export async function submitCheckIn(

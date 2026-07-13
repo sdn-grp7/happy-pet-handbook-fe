@@ -74,6 +74,8 @@ export type PublicUserProfile = {
   role: "user" | "admin";
   avatar?: string;
   createdAt?: string;
+  trustScore?: number;
+  reviewCount?: number;
 };
 
 export async function fetchPublicProfile(userId: string): Promise<PublicUserProfile> {

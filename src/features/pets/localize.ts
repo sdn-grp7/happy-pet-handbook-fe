@@ -1,3 +1,4 @@
+import { formatAgeLabel } from "@/features/pets/age";
 import type { PetListing } from "@/features/pets/types";
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, type Locale } from "@/i18n/types";
 
@@ -9,34 +10,6 @@ function getCurrentLocale(): Locale {
   } catch {
     return DEFAULT_LOCALE;
   }
-}
-
-function translateBreed(breed: string, locale: Locale) {
-  if (locale !== "en") return breed;
-  const normalized = breed.trim();
-  const map: Record<string, string> = {
-    "Chó lai": "Mixed-breed dog",
-    "Chó ta": "Vietnamese native dog",
-    Poodle: "Poodle",
-    Cái: "Female cat",
-    Đực: "Male cat",
-    Mèo: "Cat",
-  };
-  return map[normalized] ?? breed;
-}
-
-function translateAge(age: string, locale: Locale) {
-  if (locale !== "en") return age;
-  const normalized = age.trim();
-  const map: Record<string, string> = {
-    "1 tuổi": "1 year old",
-    "2 tuổi": "2 years old",
-    "3 tuổi": "3 years old",
-    "4 tuổi": "4 years old",
-    "Dưới 1 tuổi": "Under 1 year old",
-    "Đang cập nhật": "Updating",
-  };
-  return map[normalized] ?? age;
 }
 
 function translateHealthStatus(healthStatus: string, locale: Locale) {
@@ -56,9 +29,6 @@ function translateHealthStatus(healthStatus: string, locale: Locale) {
 
 function translateDescription(description: string | undefined, locale: Locale, pet: PetListing) {
   if (locale !== "en") return description;
-  if (!description || !description.trim()) {
-    return `${pet.name || "This pet"} is looking for a loving home. Please contact the shelter for more details.`;
-  }
   return `${pet.name || "This pet"} is looking for a loving home. Please contact the shelter for more details.`;
 }
 
@@ -68,13 +38,19 @@ function translatePickupAddress(address: string | undefined, locale: Locale) {
   return "Shelter pickup location in Hanoi, Vietnam";
 }
 
+/** Breed stays as enum key — UI translates via `breeds.*` i18n. */
 export function localizePet(pet: PetListing, locale: Locale = getCurrentLocale()): PetListing {
-  if (locale === "vi") return pet;
+  const ageMonths = pet.ageMonths ?? 12;
+  const age = formatAgeLabel(ageMonths, locale);
+
+  if (locale === "vi") {
+    return { ...pet, ageMonths, age };
+  }
 
   return {
     ...pet,
-    breed: translateBreed(pet.breed, locale) ?? pet.breed,
-    age: translateAge(pet.age, locale) ?? pet.age,
+    ageMonths,
+    age,
     healthStatus: translateHealthStatus(pet.healthStatus, locale) ?? pet.healthStatus,
     description: translateDescription(pet.description, locale, pet),
     notes: pet.notes,

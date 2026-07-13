@@ -1,33 +1,52 @@
-import { mockAdoptionRequests } from "@/features/adoption/mocks/data";
+import { apiRequest } from "@/lib/api";
 import type { AdoptionRequest } from "@/features/adoption/types";
-import type { User } from "@/features/auth/types";
-import { getPet } from "@/features/pets/api/petsApi";
-import { delay } from "@/shared/lib/delay";
 
-export async function getAdoptionRequests(userId?: string): Promise<AdoptionRequest[]> {
-  await delay();
-  if (userId) return mockAdoptionRequests.filter((a) => a.adopterId === userId);
-  return mockAdoptionRequests;
+type RequestsResponse = { requests: AdoptionRequest[] };
+type RequestResponse = { request: AdoptionRequest };
+type OkResponse = { ok: boolean };
+
+export async function getMyAdoptionRequests(token: string): Promise<AdoptionRequest[]> {
+  const data = await apiRequest<RequestsResponse>("/api/adoption", { token });
+  return data.requests ?? [];
+}
+
+export async function getIncomingAdoptionRequests(token: string): Promise<AdoptionRequest[]> {
+  const data = await apiRequest<RequestsResponse>("/api/adoption/incoming", { token });
+  return data.requests ?? [];
+}
+
+export async function getAllAdoptionRequests(token: string): Promise<AdoptionRequest[]> {
+  const data = await apiRequest<RequestsResponse>("/api/adoption", { token });
+  return data.requests ?? [];
 }
 
 export async function submitAdoptionRequest(
+  token: string,
   petId: string,
-  adopter: User,
   message: string,
 ): Promise<AdoptionRequest> {
-  await delay(300);
-  const pet = await getPet(petId);
-  const req: AdoptionRequest = {
-    id: `ad${Date.now()}`,
-    petId,
-    petName: pet?.name ?? "Unknown",
-    adopterId: adopter.id,
-    adopterName: adopter.name,
-    message,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockAdoptionRequests.unshift(req);
-  return req;
+  const data = await apiRequest<RequestResponse>("/api/adoption", {
+    method: "POST",
+    token,
+    body: { petId, message },
+  });
+  return data.request;
+}
+
+export async function confirmAdoptionRequest(
+  token: string,
+  requestId: string,
+): Promise<AdoptionRequest> {
+  const data = await apiRequest<RequestResponse>(
+    `/api/adoption/${encodeURIComponent(requestId)}/confirm`,
+    { method: "POST", token },
+  );
+  return data.request;
+}
+
+export async function deleteAdoptionRequest(token: string, requestId: string): Promise<void> {
+  await apiRequest<OkResponse>(`/api/adoption/${encodeURIComponent(requestId)}`, {
+    method: "DELETE",
+    token,
+  });
 }

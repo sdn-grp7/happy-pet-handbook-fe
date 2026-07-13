@@ -1,38 +1,67 @@
-import { getPostAdoptionCheckIns } from "@/features/post-adoption/api/postAdoptionApi";
-import { mockPetHistory, getHistoryByPetId } from "@/features/pet-history/mocks/data";
+import { getPet, getPets } from "@/features/pets/api/petsApi";
+import type { PetListing } from "@/features/pets/types";
 import type { PetHistoryEvent } from "@/features/pet-history/types";
-import type { PostAdoptionCheckIn } from "@/features/post-adoption/types";
-import { delay } from "@/shared/lib/delay";
 
-function mapCheckInToHistoryEvent(checkIn: PostAdoptionCheckIn): PetHistoryEvent {
-  const isSubmitted = checkIn.status === "submitted";
-  return {
-    id: `ci-${checkIn.id}`,
-    petId: checkIn.petId,
-    type: "postAdoption",
-    title: isSubmitted ? "Check-in submitted" : "Scheduled check-in",
-    titleKey: isSubmitted
-      ? "petHistory.events.checkInSubmitted.title"
-      : "petHistory.events.checkInScheduled.title",
-    description: isSubmitted ? (checkIn.healthReport ?? "") : "",
-    descriptionKey: isSubmitted ? undefined : "petHistory.events.checkInScheduled.description",
-    date: checkIn.submittedAt ?? checkIn.scheduledAt,
-    recordedBy: "Adopter",
-    recordedByKey: "petHistory.recordedByAdopter",
-    photoUrl: checkIn.photoUrl,
-    healthReport: checkIn.healthReport,
-  };
+function byDateDesc(a: { date: string }, b: { date: string }) {
+  if (!a.date && !b.date) return 0;
+  if (!a.date) return 1;
+  if (!b.date) return -1;
+  return b.date.localeCompare(a.date);
+}
+
+function mapPetToHistoryEvents(pet: PetListing): PetHistoryEvent[] {
+  const events: PetHistoryEvent[] = [];
+
+  for (const v of pet.vaccinations ?? []) {
+    events.push({
+      id: `vax-${pet.id}-${v.name}-${v.date}`,
+      petId: pet.id,
+      type: "vaccination",
+      title: v.name,
+      description: v.notes ?? "",
+      date: v.date || v.uploadedAt || "",
+      recordedBy: v.uploadedBy.name,
+      photoUrl: v.photoUrl,
+    });
+  }
+
+  for (const o of pet.owners ?? []) {
+    events.push({
+      id: `own-${o.id}`,
+      petId: pet.id,
+      type: "ownership",
+      title: o.note || o.user.name,
+      description: o.note ?? "",
+      date: o.from,
+      recordedBy: o.user.name,
+    });
+
+    for (const c of o.checkIns ?? []) {
+      events.push({
+        id: c.id || `ci-${pet.id}-${c.photoUrl}`,
+        petId: pet.id,
+        type: "postAdoption",
+        title: c.caption,
+        titleKey: "petHistory.events.checkInSubmitted.title",
+        description: c.caption,
+        date: c.date ?? "",
+        recordedBy: c.uploadedBy.name,
+        photoUrl: c.photoUrl,
+        healthReport: c.caption,
+      });
+    }
+  }
+
+  return events.sort(byDateDesc);
 }
 
 export async function getPetHistory(petId: string): Promise<PetHistoryEvent[]> {
-  await delay();
-  const history = getHistoryByPetId(petId);
-  const checkIns = (await getPostAdoptionCheckIns(petId)).map(mapCheckInToHistoryEvent);
-  return [...history, ...checkIns].sort((a, b) => b.date.localeCompare(a.date));
+  const pet = await getPet(petId);
+  if (!pet) return [];
+  return mapPetToHistoryEvents(pet);
 }
 
 export async function getAllPetHistory(): Promise<PetHistoryEvent[]> {
-  await delay();
-  const checkIns = (await getPostAdoptionCheckIns()).map(mapCheckInToHistoryEvent);
-  return [...mockPetHistory, ...checkIns].sort((a, b) => b.date.localeCompare(a.date));
+  const pets = await getPets();
+  return pets.flatMap(mapPetToHistoryEvents).sort(byDateDesc);
 }

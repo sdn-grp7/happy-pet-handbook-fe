@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { BookOpen, LayoutDashboard, LogOut, Shield } from "lucide-react";
+import { BookOpen, HeartHandshake, LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useI18n } from "@/i18n/I18nContext";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,12 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/admin", end: true, icon: LayoutDashboard, labelKey: "admin.navHome" as const },
   { to: "/admin/guides", end: false, icon: BookOpen, labelKey: "admin.navGuides" as const },
+  {
+    to: "/admin/adoption",
+    end: false,
+    icon: HeartHandshake,
+    labelKey: "admin.navAdoption" as const,
+  },
 ];
 
 export function AdminLayout() {

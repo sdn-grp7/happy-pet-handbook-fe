@@ -13,10 +13,13 @@ import { PetImage } from "@/features/pets/components/PetImage";
 import { submitAdoptionRequest } from "@/features/adoption/api/adoptionApi";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { PetHistoryTabs } from "@/features/pet-history/components/PetHistoryTabs";
+import { breedLabelKey } from "@/features/pets/breedLabel";
 import { useI18n } from "@/i18n/I18nContext";
 import type { TranslationKey } from "@/i18n/I18nContext";
 import type { PetListing } from "@/features/pets/types";
+import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { toast } from "@/shared/lib/toast";
 
 const STATUS_KEYS: Record<PetListing["status"], TranslationKey> = {
   available: "pet.statusAvailable",
@@ -48,10 +51,12 @@ type PetDetailModalProps = {
   pet: PetListing | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called after a successful adoption request (pet is now pending). */
+  onRequested?: (petId: string) => void;
 };
 
-export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps) {
-  const { user } = useAuth();
+export function PetDetailModal({ pet, open, onOpenChange, onRequested }: PetDetailModalProps) {
+  const { user, token } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
   const [activeImage, setActiveImage] = useState(0);
@@ -75,12 +80,16 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
 
   const handleAdopt = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !token) return;
     setSubmitting(true);
     try {
-      await submitAdoptionRequest(pet.id, user, message);
+      await submitAdoptionRequest(token, pet.id, message);
       setSubmitted(true);
       setShowAdoptForm(false);
+      onRequested?.(pet.id);
+      toast.success(t("pet.requestSent"));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("pet.requestError"));
     } finally {
       setSubmitting(false);
     }
@@ -137,7 +146,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                   <p>
                     {t("pet.adopter")}{" "}
                     <Link
-                      to={`/users/${encodeURIComponent(pet.adoptedBy.id)}`}
+                      to={`/users/${encodeURIComponent(pet.adoptedBy.id)}?pet=${encodeURIComponent(pet.id)}`}
                       className="font-medium text-primary hover:underline"
                       onClick={() => onOpenChange(false)}
                     >
@@ -171,7 +180,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
 
             <div className="mt-5">
               <InfoRow label={t("pet.id")} value={pet.code} />
-              <InfoRow label={t("pet.breed")} value={pet.breed} />
+              <InfoRow label={t("pet.breed")} value={t(breedLabelKey(pet.breed))} />
               <InfoRow label={t("pet.gender")} value={t(GENDER_KEYS[pet.gender])} />
               <InfoRow label={t("pet.age")} value={pet.age} />
               {pet.weightKg != null && (
@@ -228,7 +237,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                 </Link>
               </div>
               <div className="rounded-xl border border-border bg-muted/20 p-3">
-                <PetHistoryTabs vaccinations={pet.vaccinations} owners={pet.owners} />
+                <PetHistoryTabs key={pet.id} vaccinations={pet.vaccinations} owners={pet.owners} />
               </div>
             </section>
 

@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
-import { PawPrint, MapPin, RotateCcw, ChevronDown, Search } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { PawPrint, MapPin, RotateCcw, ChevronDown, Search, Upload } from "lucide-react";
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getPets, getPet } from "@/features/pets/api/petsApi";
+import { breedLabelKey } from "@/features/pets/breedLabel";
+import { PET_BREEDS } from "@/features/pets/breeds";
 import { PetImage } from "@/features/pets/components/PetImage";
 import { PetDetailModal } from "@/features/pets/components/PetDetailModal";
 import { ageMatchesBuckets, type AgeBucket } from "@/features/adoption/lib/ageFilter";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useI18n } from "@/i18n/I18nContext";
 import type { ListingStatus, PetGender, PetListing, PetSpecies } from "@/features/pets/types";
 import type { TranslationKey } from "@/i18n/I18nContext";
@@ -45,6 +48,7 @@ const selectClass =
 
 export function AdoptionPage() {
   const { t, locale } = useI18n();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [pets, setPets] = useState<PetListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,16 +85,13 @@ export function AdoptionPage() {
     getPet(petId).then((p) => setSelected(p ?? null));
   }, [petId, pets]);
 
-  const breedOptions = useMemo(
-    () => [...new Set(pets.map((p) => p.breed).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
-    [pets],
-  );
+  const breedOptions = PET_BREEDS;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return pets.filter((p) => {
       if (species !== "all" && p.species !== species) return false;
-      if (!ageMatchesBuckets(p.age, ageBuckets)) return false;
+      if (!ageMatchesBuckets(p.ageMonths, ageBuckets)) return false;
       if (gender !== "all" && p.gender !== gender) return false;
       if (breed !== "all" && p.breed !== breed) return false;
       if (status !== "all" && p.status !== status) return false;
@@ -154,6 +155,14 @@ export function AdoptionPage() {
         subtitle={t("adoption.subtitle")}
       />
       <section className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-4 flex justify-end">
+          <Button asChild variant="outline" size="sm" className="gap-1.5">
+            <Link to={user ? "/list-pet" : "/login"} state={user ? undefined : { from: "/list-pet" }}>
+              <Upload className="h-3.5 w-3.5" />
+              {t("nav.listPet")}
+            </Link>
+          </Button>
+        </div>
         <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium">{t("adoption.filters")}</p>
@@ -284,7 +293,7 @@ export function AdoptionPage() {
                 <option value="all">{t("adoption.filterAll")}</option>
                 {breedOptions.map((b) => (
                   <option key={b} value={b}>
-                    {b}
+                    {t(breedLabelKey(b))}
                   </option>
                 ))}
               </select>
@@ -321,46 +330,52 @@ export function AdoptionPage() {
                 key={pet.id}
                 type="button"
                 onClick={() => openPet(pet)}
-                className="group overflow-hidden rounded-2xl border border-border bg-card text-left shadow-[var(--shadow-card)] transition hover:-translate-y-1"
+                className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-left shadow-[var(--shadow-card)] transition hover:-translate-y-1"
               >
-                <div className="aspect-[4/3] overflow-hidden bg-muted">
+                <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-muted">
                   <PetImage
                     src={pet.images[0]}
                     alt={pet.name}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
                 </div>
-                <div className="p-5">
+                <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="text-lg font-semibold">{pet.name}</h3>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-lg font-semibold">{pet.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {pet.breed} · {pet.age}
+                        {t(breedLabelKey(pet.breed))} · {pet.age}
                         {pet.weightKg != null ? ` · ${pet.weightKg} kg` : ""}
                       </p>
                     </div>
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                       {t(STATUS_KEYS[pet.status])}
                     </span>
                   </div>
-                  {pet.status === "adopted" && pet.adoptedBy && (
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      {t("pet.adopter")}{" "}
-                      <span className="font-medium text-foreground">{pet.adoptedBy.name}</span>
-                    </p>
-                  )}
-                  {pet.description ? (
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {pet.description}
-                    </p>
-                  ) : null}
-                  {pet.pickup?.address && (
-                    <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {pet.pickup.address}
-                    </div>
-                  )}
-                  <div className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                  <p className="mt-1.5 min-h-4 text-xs text-muted-foreground">
+                    {pet.status === "adopted" && pet.adoptedBy ? (
+                      <>
+                        {t("pet.adopter")}{" "}
+                        <span className="font-medium text-foreground">{pet.adoptedBy.name}</span>
+                      </>
+                    ) : (
+                      <span className="invisible">—</span>
+                    )}
+                  </p>
+                  <p className="mt-2 line-clamp-2 min-h-10 text-sm text-muted-foreground">
+                    {pet.description || "\u00a0"}
+                  </p>
+                  <div className="mt-3 flex min-h-4 items-center gap-1 text-xs text-muted-foreground">
+                    {pet.pickup?.address ? (
+                      <>
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="line-clamp-1">{pet.pickup.address}</span>
+                      </>
+                    ) : (
+                      <span className="invisible">—</span>
+                    )}
+                  </div>
+                  <div className="mt-auto inline-flex items-center gap-1 pt-3 text-sm font-medium text-primary">
                     <PawPrint className="h-4 w-4" /> {t("adoption.viewDetails")}
                   </div>
                 </div>
@@ -370,7 +385,14 @@ export function AdoptionPage() {
         )}
       </section>
 
-      <PetDetailModal pet={selected} open={Boolean(selected)} onOpenChange={handleOpenChange} />
+      <PetDetailModal
+        pet={selected}
+        open={Boolean(selected)}
+        onOpenChange={handleOpenChange}
+        onRequested={() => {
+          getPets().then(setPets);
+        }}
+      />
     </>
   );
 }

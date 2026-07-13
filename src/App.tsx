@@ -10,6 +10,8 @@ import {
 import { HomePage } from "@/pages/HomePage";
 import { GuidePage } from "@/features/guides/pages/GuidePage";
 import { AdminGuidesPage } from "@/features/guides/pages/AdminGuidesPage";
+import { AdminAdoptionPage } from "@/features/adoption/pages/AdminAdoptionPage";
+import { IncomingAdoptionRequestsPage } from "@/features/adoption/pages/IncomingAdoptionRequestsPage";
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
 import { AdminLayout } from "@/features/admin/components/AdminLayout";
 import { MapPage } from "@/features/pets/pages/MapPage";
@@ -21,6 +23,7 @@ import { AdoptionPage } from "@/features/adoption/pages/AdoptionPage";
 import { PetDetailPage } from "@/features/pets/pages/PetDetailPage";
 import { ReputationPage } from "@/features/reputation/pages/ReputationPage";
 import { PetHistoryPage } from "@/features/pet-history/pages/PetHistoryPage";
+import { ListPetPage } from "@/features/pets/pages/ListPetPage";
 import { PostAdoptionPage } from "@/features/post-adoption/pages/PostAdoptionPage";
 import { PublicProfilePage } from "@/features/auth/pages/PublicProfilePage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -48,6 +51,7 @@ export default function App() {
         >
           <Route index element={<AdminDashboardPage />} />
           <Route path="guides" element={<AdminGuidesPage />} />
+          <Route path="adoption" element={<AdminAdoptionPage />} />
         </Route>
 
         {/* Login outside RedirectAdminToPanel so logout can reach it. */}
@@ -71,6 +75,14 @@ export default function App() {
           <Route path="health" element={<Navigate to="/guides/health" replace />} />
           <Route path="adoption" element={<AdoptionPage />} />
           <Route path="adoption/:id" element={<PetDetailPage />} />
+          <Route
+            path="list-pet"
+            element={
+              <RequireAuth>
+                <ListPetPage />
+              </RequireAuth>
+            }
+          />
           <Route path="map" element={<MapPage />} />
           <Route path="forum" element={<CommunityPage />} />
           <Route path="community" element={<CommunityPage />} />
@@ -82,6 +94,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <ProfilePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="adoption-requests"
+            element={
+              <RequireAuth>
+                <IncomingAdoptionRequestsPage />
               </RequireAuth>
             }
           />

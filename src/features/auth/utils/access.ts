@@ -18,7 +18,15 @@ export const PUBLIC_PATHS = [
 ] as const;
 
 /** Routes that require a signed-in user. */
-export const AUTH_PATHS = ["/profile", "/post-adoption", "/admin", "/admin/guides"] as const;
+export const AUTH_PATHS = [
+  "/profile",
+  "/list-pet",
+  "/adoption-requests",
+  "/post-adoption",
+  "/admin",
+  "/admin/guides",
+  "/admin/adoption",
+] as const;
 
 export type GuestCapability =
   | "read_guides"

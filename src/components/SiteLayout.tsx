@@ -12,10 +12,12 @@ import {
   Star,
   User,
   CalendarCheck,
+  Inbox,
   LogOut,
   LogIn,
   Moon,
   Sun,
+  Upload,
   Settings2,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
@@ -303,6 +305,18 @@ export function SiteLayout() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/list-pet">
+                      <Upload className="h-4 w-4" />
+                      {t("nav.listPet")}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/adoption-requests">
+                      <Inbox className="h-4 w-4" />
+                      {t("nav.incomingRequests")}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
                     <Link to="/post-adoption">
                       <CalendarCheck className="h-4 w-4" />
                       {t("nav.checkIns")}
@@ -451,6 +465,34 @@ export function SiteLayout() {
                           >
                             <User className="h-4 w-4 opacity-70" />
                             {t("nav.profile")}
+                          </Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link
+                            to="/list-pet"
+                            className={cn(
+                              "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium",
+                              pathname === "/list-pet"
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-muted",
+                            )}
+                          >
+                            <Upload className="h-4 w-4 opacity-70" />
+                            {t("nav.listPet")}
+                          </Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link
+                            to="/adoption-requests"
+                            className={cn(
+                              "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium",
+                              pathname === "/adoption-requests"
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-muted",
+                            )}
+                          >
+                            <Inbox className="h-4 w-4 opacity-70" />
+                            {t("nav.incomingRequests")}
                           </Link>
                         </SheetClose>
                         <SheetClose asChild>
@@ -644,6 +686,19 @@ export function SiteLayout() {
                         <li>
                           <Link to="/profile" className="transition-colors hover:text-foreground">
                             {t("nav.profile")}
+                          </Link>
+                        </li>
+                        <li>
+                          <Link to="/list-pet" className="transition-colors hover:text-foreground">
+                            {t("nav.listPet")}
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            to="/adoption-requests"
+                            className="transition-colors hover:text-foreground"
+                          >
+                            {t("nav.incomingRequests")}
                           </Link>
                         </li>
                         <li>

@@ -8,8 +8,6 @@ type ToastItem = {
   type: ToastType;
 };
 
-let lastToastTime = 0;
-
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -18,14 +16,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType) => {
-    const currentTime = Date.now();
-    if (currentTime - lastToastTime < 2000) {
-      return;
-    }
-
     const id = `${Date.now()}-${Math.random()}`;
     setToasts((prev) => [...prev, { id, message, type }]);
-    lastToastTime = currentTime;
   }, []);
 
   useEffect(() => {

@@ -23,7 +23,7 @@ export function PetImage({ src, alt, className, fallbackClassName }: PetImagePro
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
-      className={cn(className, failed && fallbackClassName)}
+      className={cn("block", className, failed && fallbackClassName)}
     />
   );
 }

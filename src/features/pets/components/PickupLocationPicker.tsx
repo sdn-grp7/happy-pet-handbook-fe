@@ -129,7 +129,11 @@ export function PickupLocationPicker({ value, onChange }: Props) {
     const marker = markerRef.current;
     if (!map || !marker || value?.lat == null || value?.lng == null) return;
     marker.setLngLat([value.lng, value.lat]).addTo(map);
-    map.easeTo({ center: [value.lng, value.lat], zoom: Math.max(map.getZoom(), 15), duration: 350 });
+    map.easeTo({
+      center: [value.lng, value.lat],
+      zoom: Math.max(map.getZoom(), 15),
+      duration: 350,
+    });
   }, [value?.lat, value?.lng]);
 
   useEffect(() => {

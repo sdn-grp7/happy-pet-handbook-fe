@@ -54,7 +54,6 @@ export function localizePet(pet: PetListing, locale: Locale = getCurrentLocale()
     healthStatus: translateHealthStatus(pet.healthStatus, locale) ?? pet.healthStatus,
     description: translateDescription(pet.description, locale, pet),
     notes: pet.notes,
-    postedByName: "PawPath shelter",
     pickup: pet.pickup
       ? {
           ...pet.pickup,

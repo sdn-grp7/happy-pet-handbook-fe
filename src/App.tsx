@@ -17,6 +17,7 @@ import { AdminLayout } from "@/features/admin/components/AdminLayout";
 import { MapPage } from "@/features/pets/pages/MapPage";
 import { CommunityPage } from "@/features/forum/pages/CommunityPage";
 import { ContactPage } from "@/features/contact/pages/ContactPage";
+import { AdminContactPage } from "@/features/contact/pages/AdminContactPage";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { ProfilePage } from "@/features/auth/pages/ProfilePage";
 import { AdoptionPage } from "@/features/adoption/pages/AdoptionPage";
@@ -52,6 +53,7 @@ export default function App() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="guides" element={<AdminGuidesPage />} />
           <Route path="adoption" element={<AdminAdoptionPage />} />
+          <Route path="contact" element={<AdminContactPage />} />
         </Route>
 
         {/* Login outside RedirectAdminToPanel so logout can reach it. */}

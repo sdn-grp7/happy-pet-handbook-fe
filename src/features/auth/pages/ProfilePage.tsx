@@ -2,27 +2,32 @@ import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  deleteAdoptionRequest,
-  getMyAdoptionRequests,
-} from "@/features/adoption/api/adoptionApi";
+import { deleteAdoptionRequest, getMyAdoptionRequests } from "@/features/adoption/api/adoptionApi";
 import { AdoptionRequestCard } from "@/features/adoption/components/AdoptionRequestCard";
 import { getPetHistory } from "@/features/pet-history/api/petHistoryApi";
 import type { PetHistoryEvent } from "@/features/pet-history/types";
-import { getPetsAdoptedBy } from "@/features/pets/api/petsApi";
+import { getPetsAdoptedBy, getPetsPostedBy } from "@/features/pets/api/petsApi";
 import { PetImage } from "@/features/pets/components/PetImage";
 import type { PetListing } from "@/features/pets/types";
-import {
-  getPendingRatings,
-  getReputation,
-} from "@/features/reputation/api/reputationApi";
+import { getPendingRatings, getReputation } from "@/features/reputation/api/reputationApi";
 import { TrustRateForm } from "@/features/reputation/components/TrustRateForm";
 import { uploadAvatarToCloudinary } from "@/features/auth/api/avatarApi";
 import type { AdoptionRequest } from "@/features/adoption/types";
 import type { PendingTrustRating, ReputationProfile } from "@/features/reputation/types";
 import { useI18n } from "@/i18n/I18nContext";
 import { Link } from "react-router-dom";
-import { User, LogOut, Shield, Star, Camera, Loader2, Lock, Eye, EyeOff, Inbox } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Shield,
+  Star,
+  Camera,
+  Loader2,
+  Lock,
+  Eye,
+  EyeOff,
+  Inbox,
+} from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { toast } from "@/shared/lib/toast";
 
@@ -33,6 +38,7 @@ export function ProfilePage() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [adoptions, setAdoptions] = useState<AdoptionRequest[]>([]);
   const [adoptedPets, setAdoptedPets] = useState<PetListing[]>([]);
+  const [listedPets, setListedPets] = useState<PetListing[]>([]);
   const [historyByPet, setHistoryByPet] = useState<Record<string, PetHistoryEvent[]>>({});
   const [reputation, setReputation] = useState<ReputationProfile | undefined>();
   const [pending, setPending] = useState<PendingTrustRating[]>([]);
@@ -67,19 +73,33 @@ export function ProfilePage() {
       setAdoptions([]);
       return;
     }
-    getMyAdoptionRequests(token).then(setAdoptions).catch(() => setAdoptions([]));
+    getMyAdoptionRequests(token)
+      .then(setAdoptions)
+      .catch(() => setAdoptions([]));
   }, [token]);
 
   const refreshAdoptedPets = useCallback(() => {
-    getPetsAdoptedBy(account.id).then(setAdoptedPets).catch(() => setAdoptedPets([]));
+    getPetsAdoptedBy(account.id)
+      .then(setAdoptedPets)
+      .catch(() => setAdoptedPets([]));
+  }, [account.id]);
+
+  const refreshListedPets = useCallback(() => {
+    getPetsPostedBy(account.id)
+      .then(setListedPets)
+      .catch(() => setListedPets([]));
   }, [account.id]);
 
   useEffect(() => {
     refreshAdoptions();
     refreshAdoptedPets();
+    refreshListedPets();
     getReputation(account.id).then(setReputation);
-    if (token) getPendingRatings(token).then(setPending).catch(() => setPending([]));
-  }, [account.id, token, refreshAdoptions, refreshAdoptedPets]);
+    if (token)
+      getPendingRatings(token)
+        .then(setPending)
+        .catch(() => setPending([]));
+  }, [account.id, token, refreshAdoptions, refreshAdoptedPets, refreshListedPets]);
 
   useEffect(() => {
     let active = true;
@@ -384,6 +404,47 @@ export function ProfilePage() {
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between gap-2">
+            <h3 className="font-semibold">{t("profile.myListedPets")}</h3>
+            <Link to="/list-pet" className="text-sm text-primary hover:underline">
+              {t("profile.listPetCta")}
+            </Link>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">{t("profile.myListedPetsHint")}</p>
+          {listedPets.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">{t("profile.noListedPets")}</p>
+          ) : (
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {listedPets.map((pet) => (
+                <li key={pet.id}>
+                  <Link
+                    to={`/adoption?pet=${encodeURIComponent(pet.id)}`}
+                    className="group block overflow-hidden rounded-xl border border-border bg-muted/20 transition hover:border-primary/40"
+                  >
+                    <div className="relative">
+                      <PetImage
+                        src={pet.images[0]}
+                        alt={pet.name}
+                        className="aspect-square w-full object-cover transition group-hover:scale-105"
+                      />
+                      <span className="absolute left-1.5 top-1.5 rounded-full bg-background/90 px-1.5 py-0.5 text-[10px] font-medium text-foreground shadow">
+                        {t(`adoption.${pet.status}` as "adoption.available")}
+                      </span>
+                    </div>
+                    <div className="px-2 py-2">
+                      <p className="truncate text-sm font-medium group-hover:text-primary">
+                        {pet.name}
+                      </p>
+                      <p className="truncate text-[11px] text-muted-foreground">#{pet.code}</p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between gap-2">
             <h3 className="font-semibold">{t("profile.myAdoptedPets")}</h3>
             <Link
               to={`/users/${encodeURIComponent(account.id)}`}
@@ -428,7 +489,9 @@ export function ProfilePage() {
                 <Inbox className="h-4 w-4 text-primary" />
                 {t("profile.incomingRequests")}
               </h3>
-              <p className="mt-1 text-xs text-muted-foreground">{t("profile.incomingRequestsHint")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("profile.incomingRequestsHint")}
+              </p>
             </div>
             <Link
               to="/adoption-requests"

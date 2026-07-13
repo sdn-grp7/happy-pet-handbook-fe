@@ -1,22 +1,41 @@
+import { FormEvent, useEffect, useState } from "react";
+import { Heart, Loader2, Mail, MessageCircle } from "lucide-react";
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
-import { Mail, MessageCircle, Heart } from "lucide-react";
 import { submitContactMessage } from "@/features/contact/api/contactApi";
+import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useI18n } from "@/i18n/I18nContext";
-import { useState } from "react";
+import { ApiError } from "@/lib/api";
+import { toast } from "@/shared/lib/toast";
 
 export function ContactPage() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!user) return;
+    setForm((f) => ({
+      ...f,
+      name: f.name || user.name || "",
+      email: f.email || user.email || "",
+    }));
+  }, [user]);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await submitContactMessage(form.name, form.email, form.message);
-    setLoading(false);
-    setSent(true);
+    try {
+      await submitContactMessage(form.name.trim(), form.email.trim(), form.message.trim());
+      setSent(true);
+      toast.success(t("contact.sentToast"));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("contact.sendError"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,24 +49,22 @@ export function ContactPage() {
         title={t("contact.title")}
         subtitle={t("contact.subtitle")}
       />
-      <section className="max-w-3xl mx-auto px-6 py-16 grid md:grid-cols-3 gap-6">
+      <section className="mx-auto grid max-w-3xl gap-6 px-6 py-16 md:grid-cols-3">
         <div className="md:col-span-2">
           {sent ? (
             <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-[var(--shadow-card)]">
-              <Heart className="h-8 w-8 mx-auto text-primary" />
-              <h2 className="mt-3 text-xl font-semibold">Message received</h2>
-              <p className="mt-2 text-muted-foreground">
-                Thanks for reaching out. We'll be in touch soon.
-              </p>
+              <Heart className="mx-auto h-8 w-8 text-primary" />
+              <h2 className="mt-3 text-xl font-semibold">{t("contact.sentTitle")}</h2>
+              <p className="mt-2 text-muted-foreground">{t("contact.sentBody")}</p>
             </div>
           ) : (
             <form
-              onSubmit={handleSubmit}
-              className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-[var(--shadow-card)] space-y-4"
+              onSubmit={(e) => void handleSubmit(e)}
+              className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] md:p-8"
             >
               <div>
                 <label className="text-sm font-medium" htmlFor="name">
-                  Your name
+                  {t("contact.name")}
                 </label>
                 <input
                   id="name"
@@ -59,7 +76,7 @@ export function ContactPage() {
               </div>
               <div>
                 <label className="text-sm font-medium" htmlFor="email">
-                  Email
+                  {t("contact.email")}
                 </label>
                 <input
                   id="email"
@@ -72,7 +89,7 @@ export function ContactPage() {
               </div>
               <div>
                 <label className="text-sm font-medium" htmlFor="message">
-                  Your question
+                  {t("contact.message")}
                 </label>
                 <textarea
                   id="message"
@@ -86,10 +103,11 @@ export function ContactPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-primary-foreground font-medium shadow-[var(--shadow-soft)] hover:opacity-95 transition disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full px-6 py-3 font-medium text-primary-foreground shadow-[var(--shadow-soft)] transition hover:opacity-95 disabled:opacity-60"
                 style={{ background: "var(--gradient-warm)" }}
               >
-                {loading ? "Sending…" : "Send message"}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {loading ? t("contact.sending") : t("contact.send")}
               </button>
             </form>
           )}
@@ -97,15 +115,13 @@ export function ContactPage() {
         <aside className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
             <Mail className="h-5 w-5 text-primary" />
-            <p className="mt-2 text-sm font-medium">Email</p>
-            <p className="text-sm text-muted-foreground">hello@pawpath.guide</p>
+            <p className="mt-2 text-sm font-medium">{t("contact.formHintLabel")}</p>
+            <p className="text-sm text-muted-foreground">{t("contact.formHintBody")}</p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
             <MessageCircle className="h-5 w-5 text-primary" />
-            <p className="mt-2 text-sm font-medium">Community</p>
-            <p className="text-sm text-muted-foreground">
-              Join other pet parents and share what works.
-            </p>
+            <p className="mt-2 text-sm font-medium">{t("contact.communityLabel")}</p>
+            <p className="text-sm text-muted-foreground">{t("contact.communityBody")}</p>
           </div>
         </aside>
       </section>

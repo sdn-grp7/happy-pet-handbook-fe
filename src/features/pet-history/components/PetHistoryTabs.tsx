@@ -1,7 +1,12 @@
 import { Camera, Syringe, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { PetOwnerRecord, PetVaccination, PriorCheckInPhoto, UserRef } from "@/features/pets/types";
+import type {
+  PetOwnerRecord,
+  PetVaccination,
+  PriorCheckInPhoto,
+  UserRef,
+} from "@/features/pets/types";
 import { useI18n } from "@/i18n/I18nContext";
 
 type PetHistoryTabsProps = {
@@ -41,11 +46,7 @@ function CheckInCard({ checkIn }: { checkIn: PriorCheckInPhoto }) {
   return (
     <figure className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="relative aspect-[4/3] bg-muted">
-        <img
-          src={checkIn.photoUrl}
-          alt={checkIn.caption}
-          className="h-full w-full object-cover"
-        />
+        <img src={checkIn.photoUrl} alt={checkIn.caption} className="h-full w-full object-cover" />
         <Link
           to={`/users/${encodeURIComponent(checkIn.uploadedBy.id)}`}
           onClick={(e) => e.stopPropagation()}
@@ -108,11 +109,7 @@ export function PetHistoryTabs({ vaccinations = [], owners = [] }: PetHistoryTab
                 {v.photoUrl ? (
                   <figure className="overflow-hidden rounded-xl border border-border bg-muted/20">
                     <div className="relative aspect-[4/3] bg-muted">
-                      <img
-                        src={v.photoUrl}
-                        alt={v.name}
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={v.photoUrl} alt={v.name} className="h-full w-full object-cover" />
                       <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-background/90 px-2 py-0.5 text-[11px] font-medium shadow-sm">
                         <Camera className="h-3 w-3" />
                         {t("petHistory.vaccinePhoto")}
@@ -125,9 +122,7 @@ export function PetHistoryTabs({ vaccinations = [], owners = [] }: PetHistoryTab
                           <time className="text-xs text-muted-foreground">{v.date}</time>
                         ) : null}
                       </div>
-                      {v.notes ? (
-                        <p className="text-xs text-muted-foreground">{v.notes}</p>
-                      ) : null}
+                      {v.notes ? <p className="text-xs text-muted-foreground">{v.notes}</p> : null}
                       <UploaderLine user={v.uploadedBy} prefix={t("petHistory.uploadedBy")} />
                     </figcaption>
                   </figure>
@@ -189,9 +184,7 @@ export function PetHistoryTabs({ vaccinations = [], owners = [] }: PetHistoryTab
                         : t("petHistory.ownerPeriodOpen", { from: o.from })}
                     </time>
                   </div>
-                  {o.note ? (
-                    <p className="mt-1 text-xs text-muted-foreground">{o.note}</p>
-                  ) : null}
+                  {o.note ? <p className="mt-1 text-xs text-muted-foreground">{o.note}</p> : null}
                   {o.checkIns.length > 0 ? (
                     <p className="mt-1.5 text-xs text-muted-foreground">
                       {t("petHistory.ownerCheckInCount", { count: o.checkIns.length })}

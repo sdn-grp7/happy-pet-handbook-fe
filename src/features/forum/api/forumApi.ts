@@ -1,4 +1,4 @@
-import { ApiError, apiRequest } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
 import type {
   CommentPayload,
   FeedComment,
@@ -110,6 +110,18 @@ function readDisplayName(record: RawRecord, fallback = "Member") {
   );
 }
 
+function readAvatar(record: RawRecord, fallback?: string) {
+  const author = asRecord(record.author);
+  const user = asRecord(record.user);
+  return (
+    asString(record.authorAvatar) ??
+    asString(record.avatar) ??
+    asString(author.avatar) ??
+    asString(user.avatar) ??
+    fallback
+  );
+}
+
 function readLikedByMe(record: RawRecord): boolean | undefined {
   return (
     asBoolean(record.likedByMe) ??
@@ -125,12 +137,14 @@ export function normalizeFeedComment(raw: unknown, fallback?: Partial<FeedCommen
   const content = asString(record.content) ?? asString(record.body) ?? fallback?.content ?? "";
   const createdAt = asString(record.createdAt) ?? fallback?.createdAt ?? new Date().toISOString();
   const fallbackId = [fallback?.postId ?? "comment", createdAt, content].join("-");
+  const authorAvatar = readAvatar(record, fallback?.authorAvatar);
 
   return {
     _id: asString(record._id) ?? asString(record.id) ?? fallback?._id ?? fallbackId,
     postId: asString(record.postId) ?? readEntityId(record.post) ?? fallback?.postId,
     authorId: readOwnerId(record) ?? fallback?.authorId,
     authorDisplayName: readDisplayName(record, fallback?.authorDisplayName ?? "Member"),
+    ...(authorAvatar ? { authorAvatar } : {}),
     content,
     createdAt,
     updatedAt: asString(record.updatedAt) ?? fallback?.updatedAt,
@@ -144,11 +158,13 @@ export function normalizeFeedPost(raw: unknown, fallback?: Partial<FeedPost>): F
       postId: asString(record._id) ?? asString(record.id) ?? fallback?._id,
     }),
   );
+  const authorAvatar = readAvatar(record, fallback?.authorAvatar);
 
   return {
     _id: asString(record._id) ?? asString(record.id) ?? fallback?._id ?? "",
     authorId: readOwnerId(record) ?? fallback?.authorId,
     authorDisplayName: readDisplayName(record, fallback?.authorDisplayName ?? "Member"),
+    ...(authorAvatar ? { authorAvatar } : {}),
     content: asString(record.content) ?? asString(record.body) ?? fallback?.content ?? "",
     imageUrls:
       asStringArray(record.imageUrls).length > 0
@@ -175,7 +191,7 @@ function timestamp(value: string) {
 export async function getFeedPosts(signal?: AbortSignal): Promise<FeedPost[]> {
   const data = await apiRequest<unknown>(FEED_POSTS_ENDPOINT, { signal });
   return unwrapArray(data, ["posts", "data", "feed"])
-    .map(normalizeFeedPost)
+    .map((raw) => normalizeFeedPost(raw))
     .sort((a, b) => timestamp(b.createdAt) - timestamp(a.createdAt));
 }
 
@@ -226,25 +242,11 @@ export async function togglePostLike(
   nextLiked: boolean,
   fallback?: FeedPost,
 ): Promise<ToggleLikeResult> {
-  const encodedPostId = encodeURIComponent(postId);
   const method = nextLiked ? "POST" : "DELETE";
-
-  let data: unknown;
-  try {
-    data = await apiRequest<unknown>(`${POSTS_ENDPOINT}/${encodedPostId}/like`, {
-      method,
-      token,
-    });
-  } catch (error) {
-    if (!(error instanceof ApiError) || (error.status !== 404 && error.status !== 405)) {
-      throw error;
-    }
-
-    data = await apiRequest<unknown>(`${POSTS_ENDPOINT}/${encodedPostId}/likes`, {
-      method,
-      token,
-    });
-  }
+  const data = await apiRequest<unknown>(`${POSTS_ENDPOINT}/${encodeURIComponent(postId)}/likes`, {
+    method,
+    token,
+  });
 
   const responseRecord = asRecord(data);
   const unwrapped = unwrapSingle(data, ["post", "data"]);
@@ -271,11 +273,15 @@ export async function togglePostLike(
 
 export async function getPostComments(
   postId: string,
-  signal?: AbortSignal,
+  options?: { signal?: AbortSignal; limit?: number; skip?: number },
 ): Promise<FeedComment[]> {
+  const params = new URLSearchParams();
+  if (options?.limit != null) params.set("limit", String(options.limit));
+  if (options?.skip != null) params.set("skip", String(options.skip));
+  const qs = params.toString();
   const data = await apiRequest<unknown>(
-    `${POSTS_ENDPOINT}/${encodeURIComponent(postId)}/comments`,
-    { signal },
+    `${POSTS_ENDPOINT}/${encodeURIComponent(postId)}/comments${qs ? `?${qs}` : ""}`,
+    { signal: options?.signal },
   );
   return unwrapArray(data, ["comments", "data"]).map((comment) =>
     normalizeFeedComment(comment, { postId }),

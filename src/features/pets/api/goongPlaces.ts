@@ -96,7 +96,6 @@ export async function goongReverseGeocode(lat: number, lng: number): Promise<Goo
   if (!res.ok) throw new Error(`Goong geocode failed (${res.status})`);
   const data = (await res.json()) as GeocodeResponse;
   const first = data.results?.[0];
-  const address =
-    first?.formatted_address?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  const address = first?.formatted_address?.trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   return { address, lat, lng };
 }

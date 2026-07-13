@@ -1,7 +1,7 @@
 import { mockAdoptionRequests } from "@/features/adoption/mocks/data";
 import type { AdoptionRequest } from "@/features/adoption/types";
 import type { User } from "@/features/auth/types";
-import { getPetById } from "@/features/pets/mocks/data";
+import { getPet } from "@/features/pets/api/petsApi";
 import { delay } from "@/shared/lib/delay";
 
 export async function getAdoptionRequests(userId?: string): Promise<AdoptionRequest[]> {
@@ -16,7 +16,7 @@ export async function submitAdoptionRequest(
   message: string,
 ): Promise<AdoptionRequest> {
   await delay(300);
-  const pet = getPetById(petId);
+  const pet = await getPet(petId);
   const req: AdoptionRequest = {
     id: `ad${Date.now()}`,
     petId,

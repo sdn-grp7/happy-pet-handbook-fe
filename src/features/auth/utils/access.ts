@@ -3,6 +3,7 @@ import type { User } from "@/features/auth/types";
 /** Routes anyone can open (read-only or public actions). */
 export const PUBLIC_PATHS = [
   "/",
+  "/guides",
   "/basics",
   "/nutrition",
   "/training",
@@ -17,7 +18,7 @@ export const PUBLIC_PATHS = [
 ] as const;
 
 /** Routes that require a signed-in user. */
-export const AUTH_PATHS = ["/profile", "/post-adoption"] as const;
+export const AUTH_PATHS = ["/profile", "/post-adoption", "/admin", "/admin/guides"] as const;
 
 export type GuestCapability =
   | "read_guides"
@@ -37,7 +38,7 @@ export type AuthCapability =
   | "post_adoption_checkin";
 
 export const GUEST_CAPABILITIES: { key: GuestCapability; label: string; path: string }[] = [
-  { key: "read_guides", label: "Read pet care guides", path: "/basics" },
+  { key: "read_guides", label: "Read pet care guides", path: "/guides/basics" },
   { key: "browse_adoption", label: "Browse adoption listings", path: "/adoption" },
   { key: "view_pickup_map", label: "View pickup locations on map", path: "/map" },
   { key: "read_forum", label: "Read forum threads", path: "/forum" },

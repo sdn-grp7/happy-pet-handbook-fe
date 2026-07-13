@@ -1,18 +1,46 @@
-export type PetSpecies = "dog" | "cat" | "other";
+export type PetSpecies = "dog" | "cat";
 export type ListingStatus = "available" | "pending" | "adopted";
 export type PetGender = "male" | "female" | "unknown";
 
+/** Lightweight user attribution on pet history records. */
+export type UserRef = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+/** Manual fields and/or a photo of the vaccine booklet page. */
 export interface PetVaccination {
   name: string;
   date: string;
   nextDue?: string;
   notes?: string;
+  /** When set, this entry is a photo of the physical vaccine book. */
+  photoUrl?: string;
+  /** Who uploaded this vaccine entry. */
+  uploadedBy: UserRef;
+  uploadedAt?: string;
 }
 
-/** Only present when a prior owner is known in the app (uncommon). */
-export interface PreviousOwner {
-  name: string;
+/** Check-in photo from a prior (or current) owner. */
+export interface PriorCheckInPhoto {
+  id: string;
+  photoUrl: string;
+  caption: string;
+  date?: string;
+  /** Who uploaded this photo — shown as the user name on the card. */
+  uploadedBy: UserRef;
+}
+
+/** One ownership period for a pet (pets can have multiple prior owners). */
+export interface PetOwnerRecord {
+  id: string;
+  user: UserRef;
+  from: string;
+  /** Missing = open-ended / most recent period. */
+  to?: string;
   note?: string;
+  checkIns: PriorCheckInPhoto[];
 }
 
 export interface PetListing {
@@ -35,10 +63,12 @@ export interface PetListing {
   notes?: string;
   images: string[];
   status: ListingStatus;
+  /** Present when status is adopted — the system user who adopted the pet. */
+  adoptedBy?: UserRef;
   /** Empty when source has no vaccine book */
   vaccinations: PetVaccination[];
-  /** Rare — omit when unknown */
-  previousOwner?: PreviousOwner | null;
+  /** Ownership history — 0..n prior/current owners over time */
+  owners: PetOwnerRecord[];
   /** Zalo phone digits — omit when unknown on source */
   zaloPhone?: string;
   postedById: string;

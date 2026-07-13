@@ -95,7 +95,9 @@ export function PetHistoryTimeline({ events, emptyMessage }: PetHistoryTimelineP
               </div>
             ) : null}
             <p className="text-xs text-muted-foreground mt-1">
-              {t("petHistory.recordedBy", { name: e.recordedBy })}
+              {t("petHistory.recordedBy", {
+                name: e.recordedByKey ? t(e.recordedByKey as TranslationKey) : e.recordedBy,
+              })}
             </p>
             <p className="text-xs text-muted-foreground mt-1">{typeLabel}</p>
           </li>

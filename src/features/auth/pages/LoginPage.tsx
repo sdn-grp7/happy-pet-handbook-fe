@@ -7,6 +7,7 @@ import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { LogIn, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { ApiError } from "@/lib/api";
+import { toast } from "@/shared/lib/toast";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
@@ -22,7 +23,13 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
-  const goAfterAuth = () => navigate(from, { replace: true });
+  const goAfterAuth = (role?: string) => {
+    if (role === "admin" && (!from || from === "/profile" || from === "/")) {
+      navigate("/admin", { replace: true });
+      return;
+    }
+    navigate(from.startsWith("/") ? from : "/profile", { replace: true });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,17 +37,23 @@ export function LoginPage() {
     try {
       if (mode === "register") {
         if (form.password.length < 8) {
-          setError("Password must be at least 8 characters.");
+          const msg = t("auth.passwordMin");
+          setError(msg);
+          toast.error(msg);
           return;
         }
-        await register(form.name, form.email, form.password);
-        goAfterAuth();
+        const next = await register(form.name, form.email, form.password);
+        toast.success(t("auth.registerSuccess"));
+        goAfterAuth(next.role);
         return;
       }
-      await login(form.email, form.password);
-      goAfterAuth();
+      const next = await login(form.email, form.password);
+      toast.success(t("auth.loginSuccess"));
+      goAfterAuth(next.role);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong.");
+      const msg = err instanceof ApiError ? err.message : t("auth.genericError");
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -60,7 +73,7 @@ export function LoginPage() {
           {mode === "register" && (
             <div>
               <label className="text-sm font-medium flex items-center gap-2" htmlFor="name">
-                <User className="h-4 w-4" /> Name
+                <User className="h-4 w-4" /> {t("auth.name")}
               </label>
               <input
                 id="name"
@@ -73,7 +86,7 @@ export function LoginPage() {
           )}
           <div>
             <label className="text-sm font-medium flex items-center gap-2" htmlFor="email">
-              <Mail className="h-4 w-4" /> Email
+              <Mail className="h-4 w-4" /> {t("auth.email")}
             </label>
             <input
               id="email"
@@ -86,7 +99,7 @@ export function LoginPage() {
           </div>
           <div>
             <label className="text-sm font-medium flex items-center gap-2" htmlFor="password">
-              <Lock className="h-4 w-4" /> Password
+              <Lock className="h-4 w-4" /> {t("auth.password")}
             </label>
             <div className="relative mt-1">
               <input
@@ -115,7 +128,11 @@ export function LoginPage() {
             style={{ background: "var(--gradient-warm)" }}
           >
             <LogIn className="h-4 w-4" />
-            {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Register"}
+            {loading
+              ? t("common.loading")
+              : mode === "login"
+                ? t("auth.signIn")
+                : t("auth.register")}
           </button>
 
           <div className="relative py-1">
@@ -123,7 +140,7 @@ export function LoginPage() {
               <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs text-muted-foreground">
-              <span className="bg-card px-2">or</span>
+              <span className="bg-card px-2">{t("auth.or")}</span>
             </div>
           </div>
 
@@ -132,18 +149,27 @@ export function LoginPage() {
               <GoogleLogin
                 onSuccess={async (cred) => {
                   if (!cred.credential) {
-                    setError("Google did not return a credential.");
+                    const msg = t("auth.googleNoCredential");
+                    setError(msg);
+                    toast.error(msg);
                     return;
                   }
                   try {
                     setError("");
-                    await loginGoogle(cred.credential);
-                    goAfterAuth();
+                    const next = await loginGoogle(cred.credential);
+                    toast.success(t("auth.googleSuccess"));
+                    goAfterAuth(next.role);
                   } catch (err) {
-                    setError(err instanceof ApiError ? err.message : "Google sign-in failed.");
+                    const msg = err instanceof ApiError ? err.message : t("auth.googleFailed");
+                    setError(msg);
+                    toast.error(msg);
                   }
                 }}
-                onError={() => setError("Google sign-in was cancelled or failed.")}
+                onError={() => {
+                  const msg = t("auth.googleCancelled");
+                  setError(msg);
+                  toast.error(msg);
+                }}
                 useOneTap={false}
                 theme="outline"
                 shape="pill"
@@ -160,24 +186,24 @@ export function LoginPage() {
           <p className="text-center text-sm text-muted-foreground">
             {mode === "login" ? (
               <>
-                No account?{" "}
+                {t("auth.noAccount")}{" "}
                 <button
                   type="button"
                   className="text-primary underline"
                   onClick={() => setMode("register")}
                 >
-                  Register
+                  {t("auth.register")}
                 </button>
               </>
             ) : (
               <>
-                Have an account?{" "}
+                {t("auth.haveAccount")}{" "}
                 <button
                   type="button"
                   className="text-primary underline"
                   onClick={() => setMode("login")}
                 >
-                  Sign in
+                  {t("auth.signIn")}
                 </button>
               </>
             )}
@@ -185,7 +211,7 @@ export function LoginPage() {
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           <Link to="/" className="text-primary hover:underline">
-            Continue browsing without signing in →
+            {t("auth.continueBrowsing")}
           </Link>
         </p>
       </section>

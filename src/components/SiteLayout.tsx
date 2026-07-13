@@ -16,8 +16,11 @@ import {
   LogIn,
   Moon,
   Sun,
+  Settings2,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useGuides } from "@/features/guides/contexts/GuidesContext";
+import { pickL, guidePath } from "@/features/guides/types";
 import { useTheme } from "@/components/ThemeProvider";
 import { useI18n } from "@/i18n/I18nContext";
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher";
@@ -42,8 +45,6 @@ import {
 import { cn } from "@/lib/utils";
 import type { TranslationKey } from "@/i18n/I18nContext";
 
-const GUIDE_PATHS = ["/basics", "/nutrition", "/training", "/health"] as const;
-
 function pathMatches(pathname: string, prefixes: readonly string[]) {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
@@ -53,7 +54,7 @@ function DesktopNavLink({ to, label, active }: { to: string; label: string; acti
     <Link
       to={to}
       className={cn(
-        "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        "rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
         active
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -66,37 +67,21 @@ function DesktopNavLink({ to, label, active }: { to: string; label: string; acti
 
 export function SiteLayout() {
   const { user, logout } = useAuth();
+  const { guides } = useGuides();
   const { theme, toggleTheme } = useTheme();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const guideLinks = useMemo(
     () =>
-      [
-        {
-          to: "/basics",
-          labelKey: "nav.basics" as TranslationKey,
-          descKey: "nav.basicsDesc" as TranslationKey,
-        },
-        {
-          to: "/nutrition",
-          labelKey: "nav.nutrition" as TranslationKey,
-          descKey: "nav.nutritionDesc" as TranslationKey,
-        },
-        {
-          to: "/training",
-          labelKey: "nav.training" as TranslationKey,
-          descKey: "nav.trainingDesc" as TranslationKey,
-        },
-        {
-          to: "/health",
-          labelKey: "nav.health" as TranslationKey,
-          descKey: "nav.healthDesc" as TranslationKey,
-        },
-      ] as const,
-    [],
+      guides.map((g) => ({
+        to: guidePath(g.slug),
+        label: pickL(g.title, locale),
+        desc: pickL(g.subtitle, locale),
+      })),
+    [guides, locale],
   );
 
   const primaryLinks = useMemo(
@@ -133,7 +118,7 @@ export function SiteLayout() {
     [],
   );
 
-  const onGuide = pathMatches(pathname, GUIDE_PATHS);
+  const onGuide = pathname.startsWith("/guides");
   const guidesActive = onGuide;
 
   const handleLogout = () => {
@@ -144,35 +129,38 @@ export function SiteLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
-          <Link to="/" className="flex shrink-0 items-center gap-2.5 font-semibold tracking-tight">
+        <div className="mx-auto flex h-12 max-w-6xl items-center gap-2 px-4 sm:px-6">
+          <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
             <span
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground shadow-[var(--shadow-soft)]"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-primary-foreground shadow-[var(--shadow-soft)]"
               style={{ background: "var(--gradient-warm)" }}
             >
-              <PawPrint className="h-5 w-5" />
+              <PawPrint className="h-3.5 w-3.5" />
             </span>
-            <span className="text-lg">{t("brand.name")}</span>
+            <span className="text-base">{t("brand.name")}</span>
           </Link>
 
-          <nav className="ml-6 hidden items-center gap-0.5 lg:flex" aria-label="Main">
+          <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Main">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
+                    "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium outline-none transition-colors",
                     guidesActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
-                  <BookOpen className="h-4 w-4" />
+                  <BookOpen className="h-3.5 w-3.5" />
                   {t("nav.guides")}
-                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                  <ChevronDown className="h-3 w-3 opacity-60" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64 p-2">
+              <DropdownMenuContent
+                align="start"
+                className="max-h-[min(24rem,70vh)] w-64 overflow-y-auto p-2"
+              >
                 <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                   {t("nav.guidesHint")}
                 </DropdownMenuLabel>
@@ -180,8 +168,8 @@ export function SiteLayout() {
                   <DropdownMenuItem key={g.to} asChild className="cursor-pointer rounded-md py-2.5">
                     <Link to={g.to}>
                       <div>
-                        <div className="font-medium">{t(g.labelKey)}</div>
-                        <div className="text-xs text-muted-foreground">{t(g.descKey)}</div>
+                        <div className="font-medium">{g.label}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-2">{g.desc}</div>
                       </div>
                     </Link>
                   </DropdownMenuItem>
@@ -203,14 +191,14 @@ export function SiteLayout() {
                 <button
                   type="button"
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors",
+                    "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium outline-none transition-colors",
                     pathMatches(pathname, ["/map", "/reputation"])
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   {t("nav.more")}
-                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                  <ChevronDown className="h-3 w-3 opacity-60" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-52 p-1.5">
@@ -226,39 +214,80 @@ export function SiteLayout() {
             </DropdownMenu>
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5">
+            {onGuide && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 lg:hidden"
+                  >
+                    <BookOpen className="h-3.5 w-3.5" />
+                    {t("nav.guideList")}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex w-[min(100%,18rem)] flex-col gap-0 p-0">
+                  <SheetHeader className="border-b border-border px-4 py-3 text-left">
+                    <SheetTitle className="text-sm">{t("nav.guides")}</SheetTitle>
+                  </SheetHeader>
+                  <nav className="flex-1 overflow-y-auto p-2" aria-label={t("nav.guides")}>
+                    {guideLinks.map((g) => (
+                      <SheetClose key={g.to} asChild>
+                        <Link
+                          to={g.to}
+                          className={cn(
+                            "block rounded-lg px-3 py-2.5 text-sm transition-colors",
+                            pathname === g.to
+                              ? "bg-primary/10 font-medium text-primary"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          <span className="line-clamp-2">{g.label}</span>
+                        </Link>
+                      </SheetClose>
+                    ))}
+                  </nav>
+                </SheetContent>
+              </Sheet>
+            )}
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="shrink-0"
+              className="h-8 w-8 shrink-0 p-0"
               aria-label={theme === "dark" ? t("common.switchToLight") : t("common.switchToDark")}
               onClick={toggleTheme}
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? (
+                <Sun className="h-3.5 w-3.5" />
+              ) : (
+                <Moon className="h-3.5 w-3.5" />
+              )}
             </Button>
-            <LanguageSwitcher />
+            <LanguageSwitcher className="h-8" />
 
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-3 text-sm font-medium shadow-sm transition hover:bg-muted sm:inline-flex"
+                    className="hidden items-center gap-1.5 rounded-full border border-border bg-card py-0.5 pl-0.5 pr-2.5 text-sm font-medium shadow-sm transition hover:bg-muted sm:inline-flex"
                   >
                     {user.avatar ? (
                       <img
                         src={user.avatar}
                         alt=""
-                        className="h-7 w-7 rounded-full bg-muted object-cover"
+                        className="h-6 w-6 rounded-full bg-muted object-cover"
                       />
                     ) : (
-                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-primary">
-                        <User className="h-4 w-4" />
+                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <User className="h-3.5 w-3.5" />
                       </span>
                     )}
-                    <span className="max-w-[100px] truncate">{getGivenName(user.name)}</span>
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="max-w-[90px] truncate">{getGivenName(user.name)}</span>
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -279,6 +308,14 @@ export function SiteLayout() {
                       {t("nav.checkIns")}
                     </Link>
                   </DropdownMenuItem>
+                  {user.role === "admin" && (
+                    <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                      <Link to="/admin">
+                        <Settings2 className="h-4 w-4" />
+                        {t("nav.admin")}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer gap-2 text-destructive focus:text-destructive"
@@ -293,7 +330,7 @@ export function SiteLayout() {
               <Button
                 asChild
                 size="sm"
-                className="hidden shadow-[var(--shadow-soft)] sm:inline-flex"
+                className="hidden h-8 shadow-[var(--shadow-soft)] sm:inline-flex"
               >
                 <Link to="/login">
                   <LogIn className="h-4 w-4" />
@@ -307,7 +344,7 @@ export function SiteLayout() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="lg:hidden"
+                  className="h-8 w-8 lg:hidden"
                   aria-label={t("nav.openMenu")}
                 >
                   <Menu className="h-5 w-5" />
@@ -355,7 +392,7 @@ export function SiteLayout() {
                             pathname === g.to ? "bg-primary/10 text-primary" : "hover:bg-muted",
                           )}
                         >
-                          {t(g.labelKey)}
+                          {g.label}
                         </Link>
                       </SheetClose>
                     ))}
@@ -430,6 +467,22 @@ export function SiteLayout() {
                             {t("nav.checkIns")}
                           </Link>
                         </SheetClose>
+                        {user.role === "admin" && (
+                          <SheetClose asChild>
+                            <Link
+                              to="/admin"
+                              className={cn(
+                                "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium",
+                                pathname.startsWith("/admin")
+                                  ? "bg-primary/10 text-primary"
+                                  : "hover:bg-muted",
+                              )}
+                            >
+                              <Settings2 className="h-4 w-4 opacity-70" />
+                              {t("nav.admin")}
+                            </Link>
+                          </SheetClose>
+                        )}
                       </div>
                     </>
                   )}
@@ -491,13 +544,15 @@ export function SiteLayout() {
             </Sheet>
           </div>
         </div>
+      </header>
 
+      <div className="flex min-h-0 flex-1">
         {onGuide && (
-          <div className="border-t border-border/50">
-            <nav
-              className="mx-auto flex max-w-2xl gap-5 overflow-x-auto px-5 py-2.5 scrollbar-none sm:px-6"
-              aria-label="Guide chapters"
-            >
+          <aside className="sticky top-12 hidden h-[calc(100svh-3rem)] w-60 shrink-0 flex-col border-r border-border/80 bg-muted/15 lg:flex">
+            <div className="border-b border-border/60 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("nav.guides")}
+            </div>
+            <nav className="flex-1 overflow-y-auto p-2" aria-label={t("nav.guides")}>
               {guideLinks.map((chapter) => (
                 <NavLink
                   key={chapter.to}
@@ -505,115 +560,124 @@ export function SiteLayout() {
                   end
                   className={({ isActive }) =>
                     cn(
-                      "shrink-0 border-b-2 py-1.5 text-sm transition-colors",
+                      "mb-0.5 block rounded-lg px-3 py-2.5 text-sm transition-colors",
                       isActive
-                        ? "border-foreground font-medium text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground",
+                        ? "bg-primary/10 font-medium text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )
                   }
                 >
-                  {t(chapter.labelKey)}
+                  <span className="line-clamp-2">{chapter.label}</span>
                 </NavLink>
               ))}
             </nav>
-          </div>
+          </aside>
         )}
-      </header>
 
-      <main className="flex-1">
-        <Outlet />
-      </main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="flex min-h-0 flex-1 flex-col">
+            <Outlet />
+          </main>
 
-      <footer className="border-t border-border bg-muted/30">
-        <div className="mx-auto grid max-w-6xl gap-8 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2 lg:col-span-1">
-            <Link to="/" className="inline-flex items-center gap-2 font-semibold">
-              <span
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground"
-                style={{ background: "var(--gradient-warm)" }}
-              >
-                <PawPrint className="h-4 w-4" />
-              </span>
-              {t("brand.name")}
-            </Link>
-            <p className="mt-3 max-w-xs text-sm text-muted-foreground">{t("brand.tagline")}</p>
-          </div>
-
-          <div>
-            <p className="text-sm font-semibold">{t("footer.guides")}</p>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {guideLinks.map((g) => (
-                <li key={g.to}>
-                  <Link to={g.to} className="transition-colors hover:text-foreground">
-                    {t(g.labelKey)}
+          {!onGuide && (
+            <footer className="border-t border-border bg-muted/30">
+              <div className="mx-auto grid max-w-6xl gap-8 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="sm:col-span-2 lg:col-span-1">
+                  <Link to="/" className="inline-flex items-center gap-2 font-semibold">
+                    <span
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground"
+                      style={{ background: "var(--gradient-warm)" }}
+                    >
+                      <PawPrint className="h-4 w-4" />
+                    </span>
+                    {t("brand.name")}
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+                  <p className="mt-3 max-w-xs text-sm text-muted-foreground">
+                    {t("brand.tagline")}
+                  </p>
+                </div>
 
-          <div>
-            <p className="text-sm font-semibold">{t("footer.adoptConnect")}</p>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link to="/adoption" className="transition-colors hover:text-foreground">
-                  {t("footer.browsePets")}
-                </Link>
-              </li>
-              <li>
-                <Link to="/map" className="transition-colors hover:text-foreground">
-                  {t("footer.pickupMap")}
-                </Link>
-              </li>
-              <li>
-                <Link to="/forum" className="transition-colors hover:text-foreground">
-                  {t("footer.forum")}
-                </Link>
-              </li>
-              <li>
-                <Link to="/reputation" className="transition-colors hover:text-foreground">
-                  {t("footer.trustScores")}
-                </Link>
-              </li>
-            </ul>
-          </div>
+                <div>
+                  <p className="text-sm font-semibold">{t("footer.guides")}</p>
+                  <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto text-sm text-muted-foreground">
+                    {guideLinks.map((g) => (
+                      <li key={g.to}>
+                        <Link to={g.to} className="transition-colors hover:text-foreground">
+                          {g.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-          <div>
-            <p className="text-sm font-semibold">{t("footer.account")}</p>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              {user ? (
-                <>
-                  <li>
-                    <Link to="/profile" className="transition-colors hover:text-foreground">
-                      {t("nav.profile")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/post-adoption" className="transition-colors hover:text-foreground">
-                      {t("nav.checkIns")}
-                    </Link>
-                  </li>
-                </>
-              ) : (
-                <li>
-                  <Link to="/login" className="transition-colors hover:text-foreground">
-                    {t("nav.signIn")}
-                  </Link>
-                </li>
-              )}
-              <li>
-                <Link to="/contact" className="transition-colors hover:text-foreground">
-                  {t("footer.contactSupport")}
-                </Link>
-              </li>
-            </ul>
-          </div>
+                <div>
+                  <p className="text-sm font-semibold">{t("footer.adoptConnect")}</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    <li>
+                      <Link to="/adoption" className="transition-colors hover:text-foreground">
+                        {t("footer.browsePets")}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/map" className="transition-colors hover:text-foreground">
+                        {t("footer.pickupMap")}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/forum" className="transition-colors hover:text-foreground">
+                        {t("footer.forum")}
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/reputation" className="transition-colors hover:text-foreground">
+                        {t("footer.trustScores")}
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold">{t("footer.account")}</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    {user ? (
+                      <>
+                        <li>
+                          <Link to="/profile" className="transition-colors hover:text-foreground">
+                            {t("nav.profile")}
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            to="/post-adoption"
+                            className="transition-colors hover:text-foreground"
+                          >
+                            {t("nav.checkIns")}
+                          </Link>
+                        </li>
+                      </>
+                    ) : (
+                      <li>
+                        <Link to="/login" className="transition-colors hover:text-foreground">
+                          {t("nav.signIn")}
+                        </Link>
+                      </li>
+                    )}
+                    <li>
+                      <Link to="/contact" className="transition-colors hover:text-foreground">
+                        {t("footer.contactSupport")}
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
+                © {new Date().getFullYear()} {t("brand.name")}. {t("brand.footerCopy")}
+              </div>
+            </footer>
+          )}
         </div>
-
-        <div className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} {t("brand.name")}. {t("brand.footerCopy")}
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

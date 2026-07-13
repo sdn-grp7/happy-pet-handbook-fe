@@ -11,12 +11,14 @@ export function PageHero({
 }) {
   return (
     <section style={{ background: "var(--gradient-soft)" }} className="border-b border-border">
-      <div className="max-w-4xl mx-auto px-6 py-16 md:py-20 text-center">
-        <span className="text-xs font-medium uppercase tracking-widest text-primary">
+      <div className="mx-auto max-w-4xl px-6 py-8 text-center md:py-10">
+        <span className="text-[11px] font-medium uppercase tracking-widest text-primary">
           {eyebrow}
         </span>
-        <h1 className="mt-3 text-4xl md:text-5xl font-bold tracking-tight">{title}</h1>
-        <p className="mt-4 text-lg text-muted-foreground">{subtitle}</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
+        <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+          {subtitle}
+        </p>
       </div>
     </section>
   );

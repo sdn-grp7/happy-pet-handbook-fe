@@ -3,7 +3,6 @@ import maplibregl, {
   type LngLatBoundsLike,
   type Map as MapLibreMap,
   type Marker,
-  type Popup,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { getGoongMapTilesKey, goongMapStyleUrl } from "@/lib/goong";
@@ -26,26 +25,36 @@ type GoongMapProps = {
   className?: string;
 };
 
-const DEFAULT_CENTER: [number, number] = [105.46188, 21.02665];
-const DEFAULT_ZOOM = 12;
+type MarkerEntry = {
+  marker: Marker;
+  pin: HTMLElement;
+  tag: HTMLElement;
+  data: GoongMapMarker;
+};
+
+const DEFAULT_CENTER: [number, number] = [105.8342, 21.0278];
+const DEFAULT_ZOOM = 11;
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=200&h=200&fit=crop&q=80";
 
-function escapeHtml(text: string) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+function applyActiveStyle(pin: HTMLElement, tag: HTMLElement, active: boolean) {
+  pin.style.transform = active ? "scale(1.15)" : "scale(1)";
+  pin.style.outline = active ? "3px solid rgba(234,88,12,0.55)" : "none";
+  tag.style.borderColor = active ? "#ea580c" : "#e5e7eb";
+  tag.style.color = active ? "#ea580c" : "#374151";
 }
 
-function createMarkerElement(marker: GoongMapMarker, active: boolean, onClick: () => void) {
+function createMarkerElement(
+  marker: GoongMapMarker,
+  active: boolean,
+  onClick: () => void,
+): { wrap: HTMLButtonElement; pin: HTMLElement; tag: HTMLElement } {
   const wrap = document.createElement("button");
   wrap.type = "button";
   wrap.className = "goong-marker-wrap";
   wrap.setAttribute("aria-label", marker.label);
   wrap.style.cssText =
-    "display:flex;flex-direction:column;align-items:center;border:none;background:transparent;padding:0;cursor:pointer;";
+    "display:flex;flex-direction:column;align-items:center;border:none;background:transparent;padding:0;cursor:pointer;will-change:transform;";
   wrap.addEventListener("click", (e) => {
     e.stopPropagation();
     onClick();
@@ -54,21 +63,23 @@ function createMarkerElement(marker: GoongMapMarker, active: boolean, onClick: (
   const pin = document.createElement("span");
   pin.style.cssText = [
     "display:block",
-    "width:46px",
-    "height:46px",
+    "width:40px",
+    "height:40px",
     "border-radius:9999px",
     "border:3px solid white",
     "overflow:hidden",
     "box-shadow:0 4px 14px rgba(0,0,0,0.28)",
     "transform:scale(" + (active ? "1.15" : "1") + ")",
-    "transition:transform 0.15s ease",
-    active ? "outline:3px solid rgba(234,88,12,0.55)" : "",
+    "transition:transform 0.12s ease",
+    active ? "outline:3px solid rgba(234,88,12,0.55)" : "outline:none",
     "background:" + marker.color,
   ].join(";");
 
   const img = document.createElement("img");
   img.src = marker.imageUrl || FALLBACK_IMAGE;
-  img.alt = marker.label;
+  img.alt = "";
+  img.loading = "lazy";
+  img.decoding = "async";
   img.referrerPolicy = "no-referrer";
   img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
   img.onerror = () => {
@@ -80,57 +91,43 @@ function createMarkerElement(marker: GoongMapMarker, active: boolean, onClick: (
   tag.textContent = marker.label;
   tag.style.cssText = [
     "margin-top:4px",
-    "max-width:92px",
+    "max-width:84px",
     "padding:2px 6px",
     "border-radius:6px",
     "background:white",
-    "border:1px solid #e5e7eb",
+    "border:1px solid " + (active ? "#ea580c" : "#e5e7eb"),
     "font-size:10px",
     "font-weight:600",
-    "color:#374151",
+    "color:" + (active ? "#ea580c" : "#374151"),
     "white-space:nowrap",
     "overflow:hidden",
     "text-overflow:ellipsis",
     "box-shadow:0 2px 6px rgba(0,0,0,0.12)",
-    active ? "border-color:#ea580c;color:#ea580c" : "",
+    "pointer-events:none",
   ].join(";");
 
   wrap.appendChild(pin);
   wrap.appendChild(tag);
-  return wrap;
+  return { wrap, pin, tag };
 }
 
-function buildPopupHtml(marker: GoongMapMarker) {
-  const name = escapeHtml(marker.label);
-  const status = escapeHtml(marker.statusLabel);
-  const address = escapeHtml(marker.address);
-  const image = escapeHtml(marker.imageUrl || FALLBACK_IMAGE);
-
-  return `
-    <div style="font-family:system-ui,sans-serif;min-width:180px;padding:0">
-      <img
-        src="${image}"
-        alt="${name}"
-        referrerpolicy="no-referrer"
-        onerror="this.src='${FALLBACK_IMAGE}'"
-        style="width:100%;height:96px;object-fit:cover;border-radius:8px;display:block;margin-bottom:8px"
-      />
-      <div style="font-weight:600;font-size:14px">${name}</div>
-      <div style="font-size:11px;color:#6b7280;margin-top:2px">${status}</div>
-      <div style="font-size:12px;color:#374151;margin-top:6px;line-height:1.4">${address}</div>
-    </div>
-  `;
+function markersSignature(markers: GoongMapMarker[]) {
+  // Cheap identity for set/position changes — ignore selection-only updates.
+  return markers.map((m) => `${m.id}:${m.lat}:${m.lng}`).join("|");
 }
 
 export function GoongMap({ markers, selectedId, onSelect, className = "" }: GoongMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-  const markerRefs = useRef<Map<string, Marker>>(new Map());
-  const popupRef = useRef<Popup | null>(null);
+  const entriesRef = useRef<Map<string, MarkerEntry>>(new Map());
   const onSelectRef = useRef(onSelect);
+  const selectedIdRef = useRef(selectedId);
+  const markersSigRef = useRef("");
+  const fittedSigRef = useRef("");
   const mapTilesKey = getGoongMapTilesKey();
 
   onSelectRef.current = onSelect;
+  selectedIdRef.current = selectedId;
 
   useEffect(() => {
     if (!containerRef.current || !mapTilesKey) return;
@@ -141,6 +138,7 @@ export function GoongMap({ markers, selectedId, onSelect, className = "" }: Goon
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
       attributionControl: false,
+      fadeDuration: 0,
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
@@ -149,79 +147,120 @@ export function GoongMap({ markers, selectedId, onSelect, className = "" }: Goon
     );
 
     mapRef.current = map;
-    const markerStore = markerRefs.current;
+    const entries = entriesRef.current;
+
+    const resize = () => map.resize();
+    map.on("load", resize);
+    const ro = new ResizeObserver(resize);
+    ro.observe(containerRef.current);
+    requestAnimationFrame(resize);
+    const t = window.setTimeout(resize, 100);
 
     return () => {
-      popupRef.current?.remove();
-      popupRef.current = null;
-      markerStore.forEach((m) => m.remove());
-      markerStore.clear();
+      window.clearTimeout(t);
+      ro.disconnect();
+      entries.forEach((e) => e.marker.remove());
+      entries.clear();
       map.remove();
       mapRef.current = null;
+      markersSigRef.current = "";
+      fittedSigRef.current = "";
     };
   }, [mapTilesKey]);
 
+  // Create / remove / move markers only when the set changes — not on selection.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    const syncMarkers = () => {
-      const nextIds = new Set(markers.map((m) => m.id));
+    const focusSelected = (id: string | null, animate: boolean) => {
+      if (!id) return false;
+      const entry = entriesRef.current.get(id);
+      if (!entry) return false;
+      entriesRef.current.forEach((e, eid) => applyActiveStyle(e.pin, e.tag, eid === id));
+      map.easeTo({
+        center: [entry.data.lng, entry.data.lat],
+        zoom: 16,
+        duration: animate ? 500 : 0,
+      });
+      return true;
+    };
 
-      markerRefs.current.forEach((marker, id) => {
+    const sig = markersSignature(markers);
+    const sync = () => {
+      if (sig === markersSigRef.current && entriesRef.current.size === markers.length) {
+        // Markers unchanged — still focus if deep-link selected before pins existed.
+        focusSelected(selectedIdRef.current, true);
+        return;
+      }
+      markersSigRef.current = sig;
+
+      const nextIds = new Set(markers.map((m) => m.id));
+      entriesRef.current.forEach((entry, id) => {
         if (!nextIds.has(id)) {
-          marker.remove();
-          markerRefs.current.delete(id);
+          entry.marker.remove();
+          entriesRef.current.delete(id);
         }
       });
 
+      const selected = selectedIdRef.current;
       markers.forEach((item) => {
-        const active = item.id === selectedId;
-        const existing = markerRefs.current.get(item.id);
-        if (existing) existing.remove();
+        const existing = entriesRef.current.get(item.id);
+        if (existing) {
+          existing.data = item;
+          existing.marker.setLngLat([item.lng, item.lat]);
+          applyActiveStyle(existing.pin, existing.tag, item.id === selected);
+          return;
+        }
 
-        const el = createMarkerElement(item, active, () => onSelectRef.current(item.id));
-        const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
+        const { wrap, pin, tag } = createMarkerElement(item, item.id === selected, () =>
+          onSelectRef.current(item.id),
+        );
+        const marker = new maplibregl.Marker({ element: wrap, anchor: "bottom" })
           .setLngLat([item.lng, item.lat])
           .addTo(map);
-        markerRefs.current.set(item.id, marker);
+        entriesRef.current.set(item.id, { marker, pin, tag, data: item });
       });
+
+      if (focusSelected(selected, fittedSigRef.current !== sig)) {
+        fittedSigRef.current = sig;
+        return;
+      }
+
+      if (markers.length > 0 && fittedSigRef.current !== sig) {
+        fittedSigRef.current = sig;
+        const bounds = new maplibregl.LngLatBounds();
+        markers.forEach((m) => bounds.extend([m.lng, m.lat]));
+        map.fitBounds(bounds as LngLatBoundsLike, {
+          padding: 64,
+          maxZoom: 12,
+          duration: 0,
+        });
+      }
     };
 
-    if (map.isStyleLoaded()) syncMarkers();
-    else map.once("load", syncMarkers);
-  }, [markers, selectedId]);
+    if (map.isStyleLoaded()) sync();
+    else map.once("load", sync);
+  }, [markers]);
 
+  // Selection: style pins + zoom in (also runs when markers appear after deep-link).
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || markers.length === 0) return;
+    if (!map) return;
 
-    if (selectedId) {
-      const target = markers.find((m) => m.id === selectedId);
-      if (!target) return;
+    entriesRef.current.forEach((entry, id) => {
+      applyActiveStyle(entry.pin, entry.tag, id === selectedId);
+    });
 
-      popupRef.current?.remove();
-      map.flyTo({ center: [target.lng, target.lat], zoom: 15, duration: 700 });
-      popupRef.current = new maplibregl.Popup({
-        closeButton: true,
-        closeOnClick: false,
-        offset: 20,
-        maxWidth: "220px",
-      })
-        .setLngLat([target.lng, target.lat])
-        .setHTML(buildPopupHtml(target))
-        .addTo(map);
+    if (!selectedId) return;
+    const entry = entriesRef.current.get(selectedId);
+    if (!entry) return;
 
-      popupRef.current.on("close", () => onSelectRef.current(null));
-      return;
-    }
-
-    popupRef.current?.remove();
-    popupRef.current = null;
-
-    const bounds = new maplibregl.LngLatBounds();
-    markers.forEach((m) => bounds.extend([m.lng, m.lat]));
-    map.fitBounds(bounds as LngLatBoundsLike, { padding: 72, maxZoom: 12, duration: 700 });
+    map.easeTo({
+      center: [entry.data.lng, entry.data.lat],
+      zoom: 16,
+      duration: 500,
+    });
   }, [selectedId, markers]);
 
   if (!mapTilesKey) {
@@ -237,5 +276,5 @@ export function GoongMap({ markers, selectedId, onSelect, className = "" }: Goon
     );
   }
 
-  return <div ref={containerRef} className={`w-full min-h-[520px] ${className}`} />;
+  return <div ref={containerRef} className={`h-full w-full min-h-[420px] ${className}`} />;
 }

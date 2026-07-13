@@ -11,6 +11,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = `${import.meta.env.BASE_URL}pdf.worker.min
 
 type PdfBookReaderProps = {
   file: string;
+  /** Fill parent height; PDF scrolls inside the stage. */
+  fill?: boolean;
   pageLabel: string;
   ofLabel: string;
   prevLabel: string;
@@ -21,8 +23,12 @@ type PdfBookReaderProps = {
   errorLabel: string;
 };
 
+/** Typical portrait PDF aspect (width / height). */
+const PDF_ASPECT = 0.707;
+
 export function PdfBookReader({
   file,
+  fill = false,
   pageLabel,
   ofLabel,
   prevLabel,
@@ -45,20 +51,28 @@ export function PdfBookReader({
     setNumPages(0);
     setLoadError(null);
     setReady(false);
+    setScale(1);
   }, [file]);
 
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
     const measure = () => {
-      const w = el.clientWidth;
-      setPageWidth(Math.max(280, Math.min(720, w - 48)));
+      const pad = 24;
+      const w = Math.max(0, el.clientWidth - pad);
+      const h = Math.max(0, el.clientHeight - pad);
+      if (fill && h > 0) {
+        const byHeight = h * PDF_ASPECT;
+        setPageWidth(Math.max(200, Math.min(w, byHeight, 900)));
+      } else {
+        setPageWidth(Math.max(280, Math.min(720, w)));
+      }
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [fill]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -82,8 +96,8 @@ export function PdfBookReader({
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className={cn("flex flex-col", fill ? "h-full min-h-0 gap-2" : "items-center gap-4")}>
+      <div className="flex shrink-0 flex-wrap items-center justify-center gap-2">
         <Button
           type="button"
           variant="outline"
@@ -141,9 +155,10 @@ export function PdfBookReader({
       <div
         ref={stageRef}
         className={cn(
-          "relative w-full max-w-[760px] overflow-hidden rounded-sm",
+          "relative w-full overflow-hidden rounded-sm",
           "bg-[linear-gradient(145deg,#f7f1e6_0%,#efe6d6_45%,#e8dcc8_100%)]",
           "shadow-[0_25px_50px_-12px_rgba(60,40,20,0.35),inset_0_0_0_1px_rgba(90,60,30,0.12)]",
+          fill ? "min-h-0 flex-1" : "max-w-[760px]",
         )}
       >
         <div
@@ -151,7 +166,12 @@ export function PdfBookReader({
           className="pointer-events-none absolute inset-y-0 left-0 z-10 w-3 bg-[linear-gradient(90deg,rgba(80,50,20,0.18),transparent)]"
         />
 
-        <div className="relative flex min-h-[420px] items-center justify-center overflow-x-auto px-3 py-6 sm:px-8 sm:py-10">
+        <div
+          className={cn(
+            "relative flex items-center justify-center overflow-auto px-3 py-4 sm:px-6",
+            fill ? "h-full min-h-0" : "min-h-[420px] overflow-x-auto py-6 sm:py-10",
+          )}
+        >
           {!ready && !loadError && (
             <div className="absolute inset-0 z-20 flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />

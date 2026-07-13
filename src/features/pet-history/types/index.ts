@@ -10,6 +10,8 @@ export interface PetHistoryEvent {
   descriptionKey?: string;
   date: string;
   recordedBy: string;
+  /** i18n key for recordedBy when the role label must follow locale */
+  recordedByKey?: string;
   photoUrl?: string;
   healthReport?: string;
 }

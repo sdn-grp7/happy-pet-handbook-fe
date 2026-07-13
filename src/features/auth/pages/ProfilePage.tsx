@@ -1,29 +1,44 @@
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { useEffect, useRef, useState } from "react";
-import { getAdoptionRequests } from "@/features/adoption/api/adoptionApi";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  deleteAdoptionRequest,
+  getMyAdoptionRequests,
+} from "@/features/adoption/api/adoptionApi";
+import { AdoptionRequestCard } from "@/features/adoption/components/AdoptionRequestCard";
 import { getPetHistory } from "@/features/pet-history/api/petHistoryApi";
 import type { PetHistoryEvent } from "@/features/pet-history/types";
-import { getReputation } from "@/features/reputation/api/reputationApi";
+import { getPetsAdoptedBy } from "@/features/pets/api/petsApi";
+import { PetImage } from "@/features/pets/components/PetImage";
+import type { PetListing } from "@/features/pets/types";
+import {
+  getPendingRatings,
+  getReputation,
+} from "@/features/reputation/api/reputationApi";
+import { TrustRateForm } from "@/features/reputation/components/TrustRateForm";
 import { uploadAvatarToCloudinary } from "@/features/auth/api/avatarApi";
 import type { AdoptionRequest } from "@/features/adoption/types";
-import type { ReputationProfile } from "@/features/reputation/types";
+import type { PendingTrustRating, ReputationProfile } from "@/features/reputation/types";
 import { useI18n } from "@/i18n/I18nContext";
 import { Link } from "react-router-dom";
-import { User, LogOut, Shield, Star, Camera, Loader2, Lock, Eye, EyeOff } from "lucide-react";
+import { User, LogOut, Shield, Star, Camera, Loader2, Lock, Eye, EyeOff, Inbox } from "lucide-react";
 import { ApiError } from "@/lib/api";
+import { toast } from "@/shared/lib/toast";
 
 export function ProfilePage() {
   const { t } = useI18n();
-  const { user, logout, updateAvatar, changePassword } = useAuth();
+  const { user, token, logout, updateAvatar, changePassword } = useAuth();
   const account = user!;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [adoptions, setAdoptions] = useState<AdoptionRequest[]>([]);
+  const [adoptedPets, setAdoptedPets] = useState<PetListing[]>([]);
   const [historyByPet, setHistoryByPet] = useState<Record<string, PetHistoryEvent[]>>({});
   const [reputation, setReputation] = useState<ReputationProfile | undefined>();
+  const [pending, setPending] = useState<PendingTrustRating[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -42,10 +57,29 @@ export function ProfilePage() {
   const hasPassword =
     account.hasPassword === true || (!account.googleId && account.hasPassword !== false);
 
-  useEffect(() => {
-    getAdoptionRequests(account.id).then(setAdoptions);
+  const refreshReputation = () => {
     getReputation(account.id).then(setReputation);
+    if (token) getPendingRatings(token).then(setPending);
+  };
+
+  const refreshAdoptions = useCallback(() => {
+    if (!token) {
+      setAdoptions([]);
+      return;
+    }
+    getMyAdoptionRequests(token).then(setAdoptions).catch(() => setAdoptions([]));
+  }, [token]);
+
+  const refreshAdoptedPets = useCallback(() => {
+    getPetsAdoptedBy(account.id).then(setAdoptedPets).catch(() => setAdoptedPets([]));
   }, [account.id]);
+
+  useEffect(() => {
+    refreshAdoptions();
+    refreshAdoptedPets();
+    getReputation(account.id).then(setReputation);
+    if (token) getPendingRatings(token).then(setPending).catch(() => setPending([]));
+  }, [account.id, token, refreshAdoptions, refreshAdoptedPets]);
 
   useEffect(() => {
     let active = true;
@@ -68,15 +102,29 @@ export function ProfilePage() {
     };
   }, [adoptions]);
 
+  const handleDeleteRequest = async (id: string) => {
+    if (!token) return;
+    setBusyRequestId(id);
+    try {
+      await deleteAdoptionRequest(token, id);
+      toast.success(t("adoptionRequest.deleted"));
+      refreshAdoptions();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t("adoptionRequest.deleteError"));
+    } finally {
+      setBusyRequestId(null);
+    }
+  };
+
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !token) return;
 
     setUploadingAvatar(true);
     setAvatarError(null);
 
     try {
-      const avatarUrl = await uploadAvatarToCloudinary(file);
+      const avatarUrl = await uploadAvatarToCloudinary(token, file);
       await updateAvatar(avatarUrl);
     } catch (error) {
       setAvatarError(error instanceof Error ? error.message : "Unable to update avatar.");
@@ -290,23 +338,106 @@ export function ProfilePage() {
           </button>
         </form>
 
-        {reputation && (
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">{t("profile.reputation")}</h3>
-              <Link to="/reputation" className="text-sm text-primary hover:underline">
-                {t("profile.viewAllProfiles")}
-              </Link>
-            </div>
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">{t("profile.reputation")}</h3>
+            <Link to="/reputation" className="text-sm text-primary hover:underline">
+              {t("profile.viewAllProfiles")}
+            </Link>
+          </div>
+          {reputation && reputation.reviewCount > 0 ? (
             <div className="mt-3 flex items-center gap-2">
               <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
               <span className="text-2xl font-bold">{reputation.trustScore.toFixed(1)}</span>
               <span className="text-sm text-muted-foreground">
-                ({reputation.reviewCount} reviews)
+                {t("profile.reviewsCount", { count: reputation.reviewCount })}
               </span>
             </div>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">{t("profile.noReviewsYet")}</p>
+          )}
+          <Link
+            to={`/users/${encodeURIComponent(account.id)}`}
+            className="mt-3 inline-block text-sm text-primary hover:underline"
+          >
+            {t("reputation.viewProfile")} →
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+          <h3 className="font-semibold">{t("profile.pendingRatings")}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{t("reputation.pendingHint")}</p>
+          {pending.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">{t("reputation.pendingEmpty")}</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {pending.map((item) => (
+                <TrustRateForm
+                  key={`${item.petId}-${item.revieweeId}`}
+                  item={item}
+                  onSaved={refreshReputation}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="font-semibold">{t("profile.myAdoptedPets")}</h3>
+            <Link
+              to={`/users/${encodeURIComponent(account.id)}`}
+              className="text-sm text-primary hover:underline"
+            >
+              {t("profile.viewPublicProfile")}
+            </Link>
           </div>
-        )}
+          <p className="mt-1 text-xs text-muted-foreground">{t("profile.myAdoptedPetsHint")}</p>
+          {adoptedPets.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">{t("profile.noAdoptedPets")}</p>
+          ) : (
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {adoptedPets.map((pet) => (
+                <li key={pet.id}>
+                  <Link
+                    to={`/adoption?pet=${encodeURIComponent(pet.id)}`}
+                    className="group block overflow-hidden rounded-xl border border-border bg-muted/20 transition hover:border-primary/40"
+                  >
+                    <PetImage
+                      src={pet.images[0]}
+                      alt={pet.name}
+                      className="aspect-square w-full object-cover transition group-hover:scale-105"
+                    />
+                    <div className="px-2 py-2">
+                      <p className="truncate text-sm font-medium group-hover:text-primary">
+                        {pet.name}
+                      </p>
+                      <p className="truncate text-[11px] text-muted-foreground">#{pet.code}</p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="flex items-center gap-2 font-semibold">
+                <Inbox className="h-4 w-4 text-primary" />
+                {t("profile.incomingRequests")}
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">{t("profile.incomingRequestsHint")}</p>
+            </div>
+            <Link
+              to="/adoption-requests"
+              className="shrink-0 text-sm font-medium text-primary hover:underline"
+            >
+              {t("profile.openIncomingRequests")} →
+            </Link>
+          </div>
+        </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
@@ -320,32 +451,23 @@ export function ProfilePage() {
           ) : (
             <ul className="mt-4 space-y-3">
               {adoptions.map((a) => (
-                <li key={a.id} className="rounded-lg border border-border p-3 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">{a.petName}</span>
-                    <span className="text-xs uppercase tracking-wide text-primary">{a.status}</span>
-                  </div>
-                  <p className="mt-1 text-muted-foreground line-clamp-2">{a.message}</p>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {historyByPet[a.petId]?.length
-                      ? `${historyByPet[a.petId].length} ${t("profile.historyRecords")}`
-                      : t("profile.noHistoryYet")}
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {t("profile.trackUpdates")}
-                    </span>
-                    <Link
-                      to={`/pet-history?pet=${encodeURIComponent(a.petId)}`}
-                      className="text-sm font-medium text-primary hover:underline"
-                    >
-                      {t("profile.viewHistory")}
-                    </Link>
-                  </div>
-                </li>
+                <AdoptionRequestCard
+                  key={a.id}
+                  request={a}
+                  mode="mine"
+                  busyId={busyRequestId}
+                  onDelete={handleDeleteRequest}
+                />
               ))}
             </ul>
           )}
+          {adoptions.length > 0 ? (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {adoptions.some((a) => historyByPet[a.petId]?.length)
+                ? t("profile.trackUpdates")
+                : t("profile.noHistoryYet")}
+            </p>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">

@@ -1,6 +1,9 @@
+import type { PetBreed } from "@/features/pets/breeds";
+
 export type PetSpecies = "dog" | "cat";
 export type ListingStatus = "available" | "pending" | "adopted";
 export type PetGender = "male" | "female" | "unknown";
+export type { PetBreed };
 
 /** Lightweight user attribution on pet history records. */
 export type UserRef = {
@@ -49,8 +52,11 @@ export interface PetListing {
   code: string;
   name: string;
   species: PetSpecies;
-  breed: string;
+  breed: PetBreed;
   gender: PetGender;
+  /** Age in whole months — used for filtering. Missing on older payloads → treat as 12. */
+  ageMonths?: number;
+  /** Display label derived from ageMonths. */
   age: string;
   /** Omit when unknown on source */
   weightKg?: number;

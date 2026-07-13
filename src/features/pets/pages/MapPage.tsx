@@ -199,7 +199,7 @@ export function MapPage() {
                     <p className="mt-2 text-sm text-muted-foreground">
                       {t("pet.adopter")}{" "}
                       <Link
-                        to={`/users/${encodeURIComponent(selected.adoptedBy.id)}`}
+                        to={`/users/${encodeURIComponent(selected.adoptedBy.id)}?pet=${encodeURIComponent(selected.id)}`}
                         className="font-medium text-primary hover:underline"
                       >
                         {selected.adoptedBy.name}

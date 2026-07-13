@@ -1,31 +1,19 @@
-export async function uploadAvatarToCloudinary(file: File): Promise<string> {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+import { apiRequest } from "@/lib/api";
 
-  if (!cloudName || !uploadPreset) {
-    throw new Error(
-      "Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.",
-    );
-  }
-
+/** Upload avatar via backend Cloudinary (signed — no unsigned preset). */
+export async function uploadAvatarToCloudinary(token: string, file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", uploadPreset);
   formData.append("folder", "pawpath/avatars");
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+  const data = await apiRequest<{ url: string }>("/api/uploads/image", {
     method: "POST",
+    token,
     body: formData,
   });
 
-  const data = (await response.json()) as {
-    secure_url?: string;
-    error?: { message?: string };
-  };
-
-  if (!response.ok || !data.secure_url) {
-    throw new Error(data.error?.message ?? "Unable to upload avatar.");
+  if (!data.url) {
+    throw new Error("Unable to upload avatar.");
   }
-
-  return data.secure_url;
+  return data.url;
 }

@@ -120,7 +120,19 @@ export const mockPets: PetListing[] = [
       "https://bizweb.dktcdn.net/100/507/013/products/094bbcad-e71e-4235-a0f1-dbc6f01be382.jpg?v=1783518549557",
     ],
     status: "available",
-    vaccinations: [],
+    vaccinations: [
+      {
+        name: "Rabies",
+        date: "2025-04-20",
+        nextDue: "2026-04-20",
+        notes: "Mũi tăng cường hàng năm",
+      },
+      { name: "DHPP", date: "2025-03-01", nextDue: "2026-03-01" },
+    ],
+    previousOwner: {
+      name: "Sofia Nguyen",
+      note: "Đã nhận nuôi qua PawPath (4/2025), sau đó trả về trung tâm vì chuyển nhà.",
+    },
     postedById: "snnc",
     postedByName: "Sân Nhà Nhiều Chó",
     zaloPhone: "84356682449",
@@ -149,7 +161,10 @@ export const mockPets: PetListing[] = [
       "https://bizweb.dktcdn.net/100/507/013/products/ee2b21cb-59d9-468d-a39a-9e161148028a.jpg?v=1783518321763",
     ],
     status: "available",
-    vaccinations: [],
+    vaccinations: [
+      { name: "DHPP", date: "2025-05-01", notes: "Hoàn tất chuỗi tiêm cho thú nhỏ" },
+      { name: "Rabies", date: "2025-05-01" },
+    ],
     postedById: "snnc",
     postedByName: "Sân Nhà Nhiều Chó",
     zaloPhone: "84356682449",
@@ -3071,7 +3086,9 @@ export const mockPets: PetListing[] = [
       "https://bizweb.dktcdn.net/100/507/013/products/6f6ae919-167a-4086-8492-089782a4074a.jpg?v=1751086878503",
     ],
     status: "adopted",
-    vaccinations: [],
+    vaccinations: [
+      { name: "FVRCP (4 bệnh)", date: "2025-06-23", notes: "Mũi 1 — đang ở Quốc Oai" },
+    ],
     postedById: "snnc",
     postedByName: "Sân Nhà Nhiều Chó",
     zaloPhone: "84356682449",

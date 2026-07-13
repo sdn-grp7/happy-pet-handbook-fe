@@ -1,4 +1,4 @@
-export type PetSpecies = "dog" | "cat" | "other";
+export type PetSpecies = "dog" | "cat";
 export type ListingStatus = "available" | "pending" | "adopted";
 export type PetGender = "male" | "female" | "unknown";
 

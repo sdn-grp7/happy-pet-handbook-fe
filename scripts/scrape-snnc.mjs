@@ -1,13 +1,13 @@
 /**
  * One-off scraper: public SNNC (Sapo/Bizweb) collection JSON → PawPath PetListing mocks.
  *
- * Usage: node scripts/scrape-snnc.mjs
+ * Usage: npm run scrape:snnc
  *
  * Source: https://sannhanhieucho.com/collections/{cho|meo}/products.json
  * For local demo only — attribute SNNC; do not present as official SNNC site.
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,7 +17,105 @@ const OUT_TS = join(ROOT, "src/features/pets/mocks/data.ts");
 const OUT_JSON = join(ROOT, "scripts/snnc-raw.json");
 
 const BASE = "https://sannhanhieucho.com";
+const COLLECTIONS = ["cho", "meo"];
 const UA = { "User-Agent": "PawPathMockScraper/1.0 (local demo)" };
+
+/** Embedded so a fresh scrape never drops i18n helpers / petsApi imports. */
+const DEFAULT_LOCALE_HELPERS = `import type { PetListing } from "@/features/pets/types";
+import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, type Locale } from "@/i18n/types";
+
+function getCurrentLocale(): Locale {
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  try {
+    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+    return stored === "vi" || stored === "en" ? stored : DEFAULT_LOCALE;
+  } catch {
+    return DEFAULT_LOCALE;
+  }
+}
+
+function translateBreed(breed: string, locale: Locale) {
+  if (locale !== "en") return breed;
+  const normalized = breed.trim();
+  const map: Record<string, string> = {
+    "Chó lai": "Mixed-breed dog",
+    "Chó ta": "Vietnamese native dog",
+    Poodle: "Poodle",
+    Khác: "Other",
+    Mèo: "Cat",
+  };
+  return map[normalized] ?? breed;
+}
+
+function translateAge(age: string, locale: Locale) {
+  if (locale !== "en") return age;
+  const normalized = age.trim();
+  const map: Record<string, string> = {
+    "1 tuổi": "1 year old",
+    "2 tuổi": "2 years old",
+    "3 tuổi": "3 years old",
+    "4 tuổi": "4 years old",
+    "3-4 tuổi": "3–4 years old",
+    "Dưới 1 tuổi": "Under 1 year old",
+    "Đang cập nhật": "Updating",
+  };
+  return map[normalized] ?? age;
+}
+
+function translateHealthStatus(healthStatus: string, locale: Locale) {
+  if (locale !== "en") return healthStatus;
+  const normalized = healthStatus.trim();
+  const map: Record<string, string> = {
+    Tốt: "Healthy",
+    "Tốt; chưa triệt sản": "Healthy; not spayed/neutered",
+    "Tốt;Đã tiêm đủ vắc xin": "Healthy; fully vaccinated",
+    "Tốt;Đã tiêm đủ vắc xin; Đã triệt sản": "Healthy; fully vaccinated; spayed/neutered",
+    "Ổn định": "Stable",
+    "Cụt 1 chân": "Missing one leg",
+    "Một bên mắt trái bị hỏng.": "Left eye damaged",
+  };
+  return map[normalized] ?? healthStatus;
+}
+
+function translateDescription(description: string | undefined, locale: Locale, pet: PetListing) {
+  if (locale !== "en") return description;
+  if (!description || !description.trim()) {
+    return \`\${pet.name || "This pet"} is looking for a loving home. Please contact the shelter for more details.\`;
+  }
+  return \`\${pet.name || "This pet"} is looking for a loving home. Please contact the shelter for more details.\`;
+}
+
+function translatePickupAddress(address: string | undefined, locale: Locale) {
+  if (locale !== "en") return address;
+  if (!address) return address;
+  return "Shelter pickup location in Hanoi, Vietnam";
+}
+
+function getLocalizedPet(pet: PetListing, locale: Locale = getCurrentLocale()): PetListing {
+  if (locale === "vi") return pet;
+
+  return {
+    ...pet,
+    breed: translateBreed(pet.breed, locale) ?? pet.breed,
+    age: translateAge(pet.age, locale) ?? pet.age,
+    healthStatus: translateHealthStatus(pet.healthStatus, locale) ?? pet.healthStatus,
+    description: translateDescription(pet.description, locale, pet),
+    notes: pet.notes,
+    postedByName: locale === "en" ? "PawPath shelter" : pet.postedByName,
+    pickup: pet.pickup
+      ? {
+          ...pet.pickup,
+          address: translatePickupAddress(pet.pickup.address, locale) ?? pet.pickup.address,
+        }
+      : pet.pickup,
+  };
+}
+
+export function getLocalizedPets(pets: PetListing[], locale: Locale = getCurrentLocale()) {
+  return pets.map((pet) => getLocalizedPet(pet, locale));
+}
+
+`;
 
 function toZaloDigits(raw) {
   const digits = String(raw).replace(/\D/g, "");
@@ -53,13 +151,11 @@ function parseContactFromHtml(html) {
 /** Resolve lat/lng for scraped address via Nominatim (optional). */
 async function geocodeAddress(address) {
   if (!address) return undefined;
-  // Prefer shorter, geocodable queries — full alley addresses often fail.
-  const queries = [
-    address,
-    "Cổ Đông, Sơn Tây, Hà Nội, Việt Nam",
-    "Đồng Mô, Sơn Tây, Hà Nội, Việt Nam",
-    "Sơn Tây, Hà Nội, Việt Nam",
-  ];
+  // Known SNNC shelter area — Nominatim often misreads the alley string
+  if (/cột mốc|co dong|cổ đông|đoài phương|doai phuong|sơn tây|son tay/i.test(address)) {
+    return { address, lat: 21.02665, lng: 105.46188 };
+  }
+  const queries = ["Cổ Đông, Sơn Tây, Hà Nội, Việt Nam", "Sơn Tây, Hà Nội, Việt Nam", address];
   for (const qRaw of queries) {
     try {
       const q = encodeURIComponent(qRaw);
@@ -85,7 +181,6 @@ async function geocodeAddress(address) {
     }
     await new Promise((r) => setTimeout(r, 1100));
   }
-  // Fallback: Cổ Đông / Đồng Mô area (OSM near Làng VH các dân tộc VN)
   return { address, lat: 21.02665, lng: 105.46188 };
 }
 
@@ -133,17 +228,18 @@ function parseStatus(raw) {
 
 function parseSpecies(tags, collection) {
   if (collection === "meo") return "cat";
+  if (collection === "cho") return "dog";
   const joined = tags.join(" ").toLowerCase();
   if (joined.includes("mèo") || joined.includes("meo") || joined.includes("cat")) return "cat";
-  if (joined.includes("chó") || joined.includes("cho") || joined.includes("dog")) return "dog";
-  return collection === "meo" ? "cat" : "dog";
+  return "dog";
 }
 
 function parseBreed(tags, species) {
   const skip = /^(gioitinh_|cannang_|tuoi_|suckhoe_|nhannuoi_|thoigian_)/i;
   const breedTag = tags.find((t) => !skip.test(t));
   if (breedTag) return breedTag;
-  return species === "cat" ? "Mèo nhà" : "Chó lai";
+  if (species === "cat") return "Mèo nhà";
+  return "Chó lai";
 }
 
 function parseIntakeYear(raw) {
@@ -235,11 +331,22 @@ function toTsLiteral(value, indent = 0) {
 }
 
 async function main() {
-  console.log("Fetching SNNC collections…");
+  console.log("Fetching SNNC collections:", COLLECTIONS.join(", "), "…");
   const [dogs, cats] = await Promise.all([fetchCollection("cho"), fetchCollection("meo")]);
   console.log(`Dogs: ${dogs.length}, Cats: ${cats.length}`);
 
-  const sample = dogs.find((p) => p.alias)?.alias || cats.find((p) => p.alias)?.alias;
+  const byKey = new Map();
+  const remember = (p, collection) => {
+    const sku = p.variants?.[0]?.sku ? String(p.variants[0].sku) : "";
+    const key = sku || String(p.id);
+    if (!byKey.has(key)) byKey.set(key, { ...p, _collection: collection });
+  };
+
+  for (const p of dogs) remember(p, "cho");
+  for (const p of cats) remember(p, "meo");
+
+  const raw = [...byKey.values()];
+  const sample = raw.find((p) => p.alias)?.alias;
   if (!sample) throw new Error("No product alias to scrape contact from");
 
   console.log(`Scraping contact from /${sample} …`);
@@ -259,45 +366,62 @@ async function main() {
 
   const site = { zaloPhone: contact.zaloPhone, pickup };
 
-  const raw = [...dogs, ...cats];
   mkdirSync(dirname(OUT_JSON), { recursive: true });
   writeFileSync(OUT_JSON, JSON.stringify(raw, null, 2), "utf8");
 
   const mapped = raw.map((p) => mapProduct(p, p._collection, site));
 
-  // Prefer available pets first for the adoption grid
   mapped.sort((a, b) => {
     const order = { available: 0, pending: 1, adopted: 2 };
-    return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+    const statusCmp = (order[a.status] ?? 9) - (order[b.status] ?? 9);
+    if (statusCmp !== 0) return statusCmp;
+    return String(a.name).localeCompare(String(b.name), "vi");
   });
 
-  const ts = `import type { PetListing } from "@/features/pets/types";
+  const counts = mapped.reduce((acc, p) => {
+    acc[p.species] = (acc[p.species] || 0) + 1;
+    return acc;
+  }, /** @type {Record<string, number>} */ ({}));
+  console.log("Species counts:", counts);
 
-/**
+  // Prefer existing i18n helpers from data.ts; else embed the default template
+  let localeHelpers = "";
+  if (existsSync(OUT_TS)) {
+    const prev = readFileSync(OUT_TS, "utf8");
+    const m = prev.match(/^(import[\s\S]*?export function getLocalizedPets[\s\S]*?\n\}\n)/);
+    if (m) localeHelpers = m[1].trimEnd() + "\n\n";
+  }
+  if (!localeHelpers.includes("getLocalizedPets")) {
+    localeHelpers = DEFAULT_LOCALE_HELPERS;
+  }
+
+  const ts = `${localeHelpers}/**
  * Auto-generated from SNNC public catalog (Sapo products.json).
- * Run: node scripts/scrape-snnc.mjs
- * Source: https://sannhanhieucho.com — for local demo mock data only.
+ * Run: npm run scrape:snnc
+ * Source: https://sannhanhieucho.com/collections/{cho|meo}
  * Generated: ${new Date().toISOString()}
- * Count: ${mapped.length}
+ * Count: ${mapped.length} (dog=${counts.dog || 0}, cat=${counts.cat || 0})
  */
 
 export const mockPets: PetListing[] = ${toTsLiteral(mapped)};
 
 export function getPetById(id: string) {
-  return mockPets.find((p) => p.id === id);
+  return getLocalizedPets(mockPets).find((p) => p.id === id);
 }
 
 export function getAvailablePets() {
-  return mockPets.filter((p) => p.status === "available");
+  return getLocalizedPets(mockPets.filter((p) => p.status === "available"));
 }
 
 export function getPickupLocations() {
-  return mockPets.filter(
-    (p) =>
-      (p.status === "available" || p.status === "pending") &&
-      p.pickup?.address &&
-      p.pickup.lat != null &&
-      p.pickup.lng != null,
+  return getLocalizedPets(
+    mockPets.filter(
+      (p) =>
+        (p.status === "available" || p.status === "pending") &&
+        p.pickup?.address &&
+        p.pickup.lat != null &&
+        p.pickup.lng != null,
+    ),
   );
 }
 `;

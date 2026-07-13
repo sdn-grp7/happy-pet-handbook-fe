@@ -1,23 +1,18 @@
 import type { GuideBook, LocalizedString } from "@/features/guides/types";
+import { pickL, guidePath } from "@/features/guides/types";
 
-export function pickL(value: LocalizedString, locale: "vi" | "en"): string {
-  return value[locale] || value.en || value.vi;
-}
+export { pickL, guidePath };
 
 /**
- * Free / educational PDFs (non-commercial share with attribution).
- * Files live in public/guides/ — refresh with: npm run fetch:guides
+ * Offline fallback if the API is down — mirrors the seeded handbook volumes.
+ * PDF paths are local until seed:guides has run.
  */
 export const guideBooks: GuideBook[] = [
   {
     id: "book-basics",
-    category: "basics",
     slug: "basics",
     chapter: 1,
-    title: {
-      vi: "Cẩm nang chủ nuôi",
-      en: "Pet Parent Guide",
-    },
+    title: { vi: "Cẩm nang chủ nuôi", en: "Pet Parent Guide" },
     subtitle: {
       vi: "Chào đón thú cưng mới — checklist nhận nuôi và chăm sóc cơ bản.",
       en: "Welcoming a new pet — adoption checklist and everyday care basics.",
@@ -30,13 +25,9 @@ export const guideBooks: GuideBook[] = [
   },
   {
     id: "book-nutrition",
-    category: "nutrition",
     slug: "nutrition",
     chapter: 2,
-    title: {
-      vi: "Đọc nhãn thức ăn",
-      en: "Reading Pet Food Labels",
-    },
+    title: { vi: "Đọc nhãn thức ăn", en: "Reading Pet Food Labels" },
     subtitle: {
       vi: "Hiểu nhãn AAFCO, thành phần và khẩu phần — chọn thức ăn đúng.",
       en: "Understand AAFCO statements, ingredients, and feeding amounts.",
@@ -48,13 +39,9 @@ export const guideBooks: GuideBook[] = [
   },
   {
     id: "book-training",
-    category: "training",
     slug: "training",
     chapter: 3,
-    title: {
-      vi: "Huấn luyện tích cực",
-      en: "Positive Reinforcement",
-    },
+    title: { vi: "Huấn luyện tích cực", en: "Positive Reinforcement" },
     subtitle: {
       vi: "Dạy chó bằng thưởng và khen — không dùng hình phạt.",
       en: "Train with rewards and praise — not punishment.",
@@ -67,13 +54,9 @@ export const guideBooks: GuideBook[] = [
   },
   {
     id: "book-health",
-    category: "health",
     slug: "health",
     chapter: 4,
-    title: {
-      vi: "Sẵn sàng khi khẩn cấp",
-      en: "Pet Preparedness",
-    },
+    title: { vi: "Sẵn sàng khi khẩn cấp", en: "Pet Preparedness" },
     subtitle: {
       vi: "Kit cứu hộ, sơ tán và giữ thú cưng an toàn khi thiên tai.",
       en: "Emergency kits, evacuation plans, and keeping pets safe in disasters.",
@@ -90,14 +73,14 @@ export function getBookBySlug(slug: string): GuideBook | undefined {
   return guideBooks.find((b) => b.slug === slug);
 }
 
-export function getGuideNav() {
-  return guideBooks.map((b) => ({
+export function getGuideNav(books: GuideBook[] = guideBooks) {
+  return books.map((b) => ({
     slug: b.slug,
     chapter: b.chapter,
-    title: b.title,
-    path: `/${b.slug}`,
+    title: b.title as LocalizedString,
+    path: guidePath(b.slug),
   }));
 }
 
-/** @deprecated Use guideBooks — kept for any leftover imports */
+/** @deprecated Use guideBooks */
 export const mockGuides = guideBooks;

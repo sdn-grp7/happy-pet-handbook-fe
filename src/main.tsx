@@ -3,7 +3,9 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ToastProvider } from "@/components/ToastProvider";
 import { AuthProvider } from "@/features/auth/contexts/AuthContext";
+import { GuidesProvider } from "@/features/guides/contexts/GuidesContext";
 import { I18nProvider } from "@/i18n/I18nContext";
 import App from "./App";
 import "./styles.css";
@@ -14,7 +16,11 @@ function Providers({ children }: { children: React.ReactNode }) {
   const tree = (
     <I18nProvider>
       <ThemeProvider>
-        <AuthProvider>{children}</AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <GuidesProvider>{children}</GuidesProvider>
+          </AuthProvider>
+        </ToastProvider>
       </ThemeProvider>
     </I18nProvider>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Heart, MapPin, Syringe, StickyNote, UserRound, MessageCircle } from "lucide-react";
+import { Heart, MapPin, StickyNote, MessageCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { PetImage } from "@/features/pets/components/PetImage";
 import { submitAdoptionRequest } from "@/features/adoption/api/adoptionApi";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { PetHistoryTimeline } from "@/features/pet-history/components/PetHistoryTimeline";
+import { PetHistoryTabs } from "@/features/pet-history/components/PetHistoryTabs";
 import { getPetHistory } from "@/features/pet-history/api/petHistoryApi";
 import type { PetHistoryEvent } from "@/features/pet-history/types";
 import { useI18n } from "@/i18n/I18nContext";
@@ -87,7 +87,6 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
   if (!pet) return null;
 
   const images = pet.images.length > 0 ? pet.images : [""];
-  const hasPreviousOwner = Boolean(pet.previousOwner?.name);
 
   const handleAdopt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,34 +183,6 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
               </p>
             )}
 
-            {pet.vaccinations.length > 0 && (
-              <section className="mt-6">
-                <h3 className="flex items-center gap-2 text-sm font-semibold">
-                  <Syringe className="h-4 w-4 text-primary" />
-                  {t("pet.vaccines")}
-                </h3>
-                <ul className="mt-3 space-y-2">
-                  {pet.vaccinations.map((v, i) => (
-                    <li
-                      key={`${v.name}-${v.date}-${i}`}
-                      className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-sm"
-                    >
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-medium">{v.name}</span>
-                        <time className="text-xs text-muted-foreground">{v.date}</time>
-                      </div>
-                      {v.nextDue && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {t("pet.nextDue", { date: v.nextDue })}
-                        </p>
-                      )}
-                      {v.notes && <p className="mt-0.5 text-xs text-muted-foreground">{v.notes}</p>}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
             {pet.notes && (
               <section className="mt-6">
                 <h3 className="flex items-center gap-2 text-sm font-semibold">
@@ -224,23 +195,8 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
               </section>
             )}
 
-            {hasPreviousOwner && pet.previousOwner && (
-              <section className="mt-6">
-                <h3 className="flex items-center gap-2 text-sm font-semibold">
-                  <UserRound className="h-4 w-4 text-primary" />
-                  {t("pet.previousOwner")}
-                </h3>
-                <div className="mt-2 rounded-xl border border-dashed border-border px-3 py-2.5 text-sm">
-                  <p className="font-medium">{pet.previousOwner.name}</p>
-                  {pet.previousOwner.note && (
-                    <p className="mt-1 text-muted-foreground">{pet.previousOwner.note}</p>
-                  )}
-                </div>
-              </section>
-            )}
-
             <section className="mt-6">
-              <div className="flex items-center justify-between gap-2">
+              <div className="mb-3 flex items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold">{t("petHistory.sectionTitle")}</h3>
                 <Link
                   to={`/pet-history?pet=${encodeURIComponent(pet.id)}`}
@@ -249,10 +205,12 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                   {t("petHistory.viewFull")}
                 </Link>
               </div>
-              <div className="mt-3 rounded-xl border border-border bg-muted/30 p-3">
-                <PetHistoryTimeline
-                  events={petHistory.slice(0, 3)}
-                  emptyMessage={t("petHistory.emptyMessage")}
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <PetHistoryTabs
+                  events={petHistory}
+                  vaccinations={pet.vaccinations}
+                  previousOwner={pet.previousOwner}
+                  compact
                 />
               </div>
             </section>

@@ -103,7 +103,7 @@ export function MapPage() {
   );
 
   const selected = places.find((p) => p.id === selectedId) ?? null;
-  const filters: ("All" | PetListing["species"])[] = ["All", "dog", "cat", "other"];
+  const filters: ("All" | PetListing["species"])[] = ["All", "dog", "cat"];
 
   const handleSelect = useCallback((id: string | null) => {
     setSelectedId(id);

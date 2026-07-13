@@ -1,26 +1,26 @@
-export type GuideCategory = "basics" | "nutrition" | "training" | "health";
-
 export interface LocalizedString {
   vi: string;
   en: string;
 }
 
-/** A real PDF volume shown in the book-style reader. */
+/** A PDF volume shown in the book-style reader (from API / Cloudinary). */
 export interface GuideBook {
   id: string;
-  category: GuideCategory;
   slug: string;
   chapter: number;
-  /** Display title in the app chrome */
   title: LocalizedString;
-  /** Short blurb under the title */
   subtitle: LocalizedString;
-  /** Path under /public, e.g. /guides/pet-parent-guide.pdf */
   pdfUrl: string;
-  /** Original publication title (for attribution) */
-  sourceTitle: string;
-  /** Publisher / author credit — required for redistributed guides */
-  attribution: string;
-  /** Link to the original source when available */
+  sourceTitle?: string;
+  attribution?: string;
   sourceUrl?: string;
+  published?: boolean;
+}
+
+export function pickL(value: LocalizedString, locale: "vi" | "en"): string {
+  return value[locale] || value.en || value.vi;
+}
+
+export function guidePath(slug: string) {
+  return `/guides/${slug}`;
 }

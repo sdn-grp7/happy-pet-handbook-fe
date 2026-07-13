@@ -1,27 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { getGuide } from "@/features/guides/api/guidesApi";
 import { PdfBookReader } from "@/features/guides/components/PdfBookReader";
-import { getGuideNav, pickL } from "@/features/guides/mocks/data";
+import { useGuides } from "@/features/guides/contexts/GuidesContext";
+import { pickL, guidePath } from "@/features/guides/types";
 import { useI18n } from "@/i18n/I18nContext";
 import type { GuideBook } from "@/features/guides/types";
 
-const GUIDE_SLUGS = ["basics", "nutrition", "training", "health"] as const;
-
 export function GuidePage() {
-  const { pathname } = useLocation();
-  const slug = pathname.replace(/^\//, "");
+  const { slug = "" } = useParams<{ slug: string }>();
   const { locale, t } = useI18n();
+  const { guides } = useGuides();
   const [book, setBook] = useState<GuideBook | null | undefined>(undefined);
 
-  const nav = useMemo(() => getGuideNav(), []);
+  const nav = useMemo(
+    () =>
+      guides.map((b) => ({
+        slug: b.slug,
+        chapter: b.chapter,
+        title: b.title,
+        path: guidePath(b.slug),
+      })),
+    [guides],
+  );
   const idx = nav.findIndex((n) => n.slug === slug);
   const prev = idx > 0 ? nav[idx - 1] : undefined;
   const next = idx >= 0 && idx < nav.length - 1 ? nav[idx + 1] : undefined;
+  const firstPath = nav[0]?.path ?? "/";
 
   useEffect(() => {
+    if (!slug) {
+      setBook(null);
+      return;
+    }
     let cancelled = false;
     setBook(undefined);
     getGuide(slug).then((g) => {
@@ -32,20 +45,20 @@ export function GuidePage() {
     };
   }, [slug]);
 
-  if (!GUIDE_SLUGS.includes(slug as (typeof GUIDE_SLUGS)[number])) {
-    return <Navigate to="/basics" replace />;
+  if (!slug) {
+    return <Navigate to={firstPath} replace />;
   }
 
   if (book === undefined) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[calc(100svh-3rem)] items-center justify-center text-sm text-muted-foreground">
         {t("common.loading")}
       </div>
     );
   }
 
   if (!book) {
-    return <Navigate to="/basics" replace />;
+    return <Navigate to={firstPath} replace />;
   }
 
   const title = pickL(book.title, locale);
@@ -55,102 +68,89 @@ export function GuidePage() {
     <>
       <PageMeta title={title} description={subtitle} />
 
-      <div className="relative overflow-hidden border-b border-border/60">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-90"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 70%), linear-gradient(180deg, color-mix(in oklch, var(--muted) 80%, transparent), transparent)",
-          }}
-        />
-        <div className="relative mx-auto max-w-3xl px-6 pb-8 pt-12 text-center md:pt-14">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
-            {t("guides.handbook")} · {t("guides.volume")} {book.chapter}
-          </p>
-          <h1 className="mt-3 font-serif text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-            {title}
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
-            {subtitle}
-          </p>
+      <div className="flex h-[calc(100svh-3rem)] flex-col overflow-hidden">
+        <header className="shrink-0 border-b border-border/70 bg-background px-3 py-2.5 sm:px-5">
+          <div className="mx-auto flex max-w-5xl items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-primary">
+                {t("guides.handbook")} · {t("guides.volume")} {book.chapter}
+              </p>
+              <h1 className="mt-0.5 truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                {title}
+              </h1>
+              <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground sm:text-sm">
+                {subtitle}
+              </p>
+            </div>
+
+            <nav className="flex shrink-0 items-center gap-1 pt-1">
+              {prev ? (
+                <Link
+                  to={prev.path}
+                  className="inline-flex h-8 items-center gap-0.5 rounded-md px-2 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  title={pickL(prev.title, locale)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t("guides.prevChapter")}</span>
+                </Link>
+              ) : null}
+              {next ? (
+                <Link
+                  to={next.path}
+                  className="inline-flex h-8 items-center gap-0.5 rounded-md px-2 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  title={pickL(next.title, locale)}
+                >
+                  <span className="hidden sm:inline">{t("guides.nextChapter")}</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link
+                  to="/adoption"
+                  className="inline-flex h-8 items-center rounded-md px-2 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  {t("nav.adopt")}
+                </Link>
+              )}
+            </nav>
+          </div>
+
+          {(book.sourceTitle || book.attribution) && (
+            <p className="mx-auto mt-1.5 max-w-5xl truncate text-[11px] text-muted-foreground">
+              {book.sourceTitle}
+              {book.sourceTitle && book.attribution ? " — " : null}
+              {book.attribution}
+              {book.sourceUrl ? (
+                <>
+                  {" "}
+                  <a
+                    href={book.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-0.5 underline-offset-2 hover:underline"
+                  >
+                    {t("guides.source")}
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                </>
+              ) : null}
+            </p>
+          )}
+        </header>
+
+        <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-2 py-2 sm:px-4 sm:py-3">
+          <PdfBookReader
+            file={book.pdfUrl}
+            fill
+            pageLabel={t("guides.page")}
+            ofLabel={t("guides.of")}
+            prevLabel={t("guides.prevPage")}
+            nextLabel={t("guides.nextPage")}
+            zoomInLabel={t("guides.zoomIn")}
+            zoomOutLabel={t("guides.zoomOut")}
+            loadingLabel={t("guides.loadingPdf")}
+            errorLabel={t("guides.pdfError")}
+          />
         </div>
-      </div>
-
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
-        <PdfBookReader
-          file={book.pdfUrl}
-          pageLabel={t("guides.page")}
-          ofLabel={t("guides.of")}
-          prevLabel={t("guides.prevPage")}
-          nextLabel={t("guides.nextPage")}
-          zoomInLabel={t("guides.zoomIn")}
-          zoomOutLabel={t("guides.zoomOut")}
-          loadingLabel={t("guides.loadingPdf")}
-          errorLabel={t("guides.pdfError")}
-        />
-
-        <p className="mx-auto mt-6 max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-          <span className="font-medium text-foreground/80">{book.sourceTitle}</span>
-          {" — "}
-          {book.attribution}
-          {book.sourceUrl ? (
-            <>
-              {" "}
-              <a
-                href={book.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-0.5 underline-offset-2 hover:underline"
-              >
-                {t("guides.source")}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </>
-          ) : null}
-        </p>
-
-        <nav className="mx-auto mt-10 flex max-w-2xl items-stretch justify-between gap-4 border-t border-border pt-8">
-          {prev ? (
-            <Link
-              to={prev.path}
-              className="group flex min-w-0 flex-1 flex-col items-start gap-0.5 rounded-lg p-2 transition hover:bg-muted/60"
-            >
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <ChevronLeft className="h-3.5 w-3.5" />
-                {t("guides.prevChapter")}
-              </span>
-              <span className="truncate text-sm font-medium group-hover:text-primary">
-                {pickL(prev.title, locale)}
-              </span>
-            </Link>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {next ? (
-            <Link
-              to={next.path}
-              className="group flex min-w-0 flex-1 flex-col items-end gap-0.5 rounded-lg p-2 text-right transition hover:bg-muted/60"
-            >
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                {t("guides.nextChapter")}
-                <ChevronRight className="h-3.5 w-3.5" />
-              </span>
-              <span className="truncate text-sm font-medium group-hover:text-primary">
-                {pickL(next.title, locale)}
-              </span>
-            </Link>
-          ) : (
-            <Link
-              to="/adoption"
-              className="group flex min-w-0 flex-1 flex-col items-end gap-0.5 rounded-lg p-2 text-right transition hover:bg-muted/60"
-            >
-              <span className="text-xs text-muted-foreground">{t("guides.doneCta")}</span>
-              <span className="text-sm font-medium group-hover:text-primary">{t("nav.adopt")}</span>
-            </Link>
-          )}
-        </nav>
       </div>
     </>
   );

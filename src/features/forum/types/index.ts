@@ -1,32 +1,40 @@
-export interface ForumReply {
-  id: string;
-  authorId: string;
-  authorName: string;
-  /** Optional photo URL; falls back to initials */
-  avatarUrl?: string;
-  /** Role / status chip, e.g. "Verified" */
-  badge?: string;
-  body: string;
+export interface FeedComment {
+  _id: string;
+  postId?: string;
+  authorId?: string;
+  authorDisplayName: string;
+  content: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
-export interface ForumThread {
-  id: string;
-  authorId: string;
-  authorName: string;
-  /** Emoji fallback when no avatarUrl */
-  avatar: string;
-  avatarUrl?: string;
-  badge?: string;
-  topic: string;
-  /** Extra tags shown under the title */
-  tags?: string[];
-  title: string;
-  body: string;
-  images?: string[];
-  upvotes: number;
-  upvoted: boolean;
-  promotedToGuide: boolean;
+export interface FeedPost {
+  _id: string;
+  authorId?: string;
+  authorDisplayName: string;
+  content: string;
+  imageUrls: string[];
+  tags: string[];
+  likesCount: number;
+  likedByMe?: boolean;
+  commentsCount: number;
   createdAt: string;
-  replies: ForumReply[];
+  updatedAt?: string;
+  comments?: FeedComment[];
 }
+
+export type PostPayload = {
+  content: string;
+  imageUrls: string[];
+  tags: string[];
+};
+
+export type CommentPayload = {
+  content: string;
+};
+
+export type ToggleLikeResult = {
+  post?: FeedPost;
+  likedByMe?: boolean;
+  likesCount?: number;
+};

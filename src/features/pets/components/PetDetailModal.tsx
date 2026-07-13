@@ -13,8 +13,6 @@ import { PetImage } from "@/features/pets/components/PetImage";
 import { submitAdoptionRequest } from "@/features/adoption/api/adoptionApi";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { PetHistoryTabs } from "@/features/pet-history/components/PetHistoryTabs";
-import { getPetHistory } from "@/features/pet-history/api/petHistoryApi";
-import type { PetHistoryEvent } from "@/features/pet-history/types";
 import { useI18n } from "@/i18n/I18nContext";
 import type { TranslationKey } from "@/i18n/I18nContext";
 import type { PetListing } from "@/features/pets/types";
@@ -61,7 +59,6 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [petHistory, setPetHistory] = useState<PetHistoryEvent[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -70,18 +67,6 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
     setMessage("");
     setSubmitted(false);
     setSubmitting(false);
-    setPetHistory([]);
-
-    if (!pet?.id) return;
-
-    let active = true;
-    getPetHistory(pet.id).then((events) => {
-      if (active) setPetHistory(events);
-    });
-
-    return () => {
-      active = false;
-    };
   }, [open, pet?.id]);
 
   if (!pet) return null;
@@ -148,12 +133,13 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
             <div className="pr-8">
               <h2 className="text-3xl font-bold tracking-tight">{pet.name}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {pet.breed} · {t("pet.listedBy", { name: pet.postedByName })}
+                {t("pet.listedBy", { name: pet.postedByName })}
               </p>
             </div>
 
             <div className="mt-5">
               <InfoRow label={t("pet.id")} value={pet.code} />
+              <InfoRow label={t("pet.breed")} value={pet.breed} />
               <InfoRow label={t("pet.gender")} value={t(GENDER_KEYS[pet.gender])} />
               <InfoRow label={t("pet.age")} value={pet.age} />
               {pet.weightKg != null && (
@@ -168,10 +154,14 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                 <InfoRow
                   label={t("pet.pickup")}
                   value={
-                    <span className="inline-flex items-start gap-1">
-                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                      {pet.pickup.address}
-                    </span>
+                    <Link
+                      to={`/map?pet=${encodeURIComponent(pet.id)}`}
+                      className="inline-flex items-start gap-1 text-primary hover:underline"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{pet.pickup.address}</span>
+                    </Link>
                   }
                 />
               )}
@@ -206,12 +196,7 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                 </Link>
               </div>
               <div className="rounded-xl border border-border bg-muted/20 p-3">
-                <PetHistoryTabs
-                  events={petHistory}
-                  vaccinations={pet.vaccinations}
-                  previousOwner={pet.previousOwner}
-                  compact
-                />
+                <PetHistoryTabs vaccinations={pet.vaccinations} owners={pet.owners} />
               </div>
             </section>
 

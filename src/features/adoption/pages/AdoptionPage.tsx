@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { PawPrint, MapPin, RotateCcw, ChevronDown } from "lucide-react";
+import { PawPrint, MapPin, RotateCcw, ChevronDown, Search } from "lucide-react";
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ export function AdoptionPage() {
   const [weight, setWeight] = useState<WeightFilter>("all");
   const [breed, setBreed] = useState("all");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [query, setQuery] = useState("");
 
   const petId = searchParams.get("pet");
 
@@ -86,6 +87,7 @@ export function AdoptionPage() {
   );
 
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return pets.filter((p) => {
       if (species !== "all" && p.species !== species) return false;
       if (!ageMatchesBuckets(p.age, ageBuckets)) return false;
@@ -93,9 +95,15 @@ export function AdoptionPage() {
       if (breed !== "all" && p.breed !== breed) return false;
       if (status !== "all" && p.status !== status) return false;
       if (weight !== "all" && !WEIGHT_MATCH[weight](p.weightKg)) return false;
+      if (q) {
+        const haystack = [p.name, p.code, p.breed, p.pickup?.address ?? ""]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
-  }, [pets, species, ageBuckets, gender, breed, status, weight]);
+  }, [pets, species, ageBuckets, gender, breed, status, weight, query]);
 
   const openPet = useCallback(
     (pet: PetListing) => {
@@ -128,6 +136,7 @@ export function AdoptionPage() {
     setWeight("all");
     setBreed("all");
     setStatus("all");
+    setQuery("");
   };
 
   const speciesChips: { value: SpeciesFilter; label: string }[] = [
@@ -158,6 +167,18 @@ export function AdoptionPage() {
               <RotateCcw className="h-3.5 w-3.5" />
               {t("adoption.resetFilters")}
             </Button>
+          </div>
+
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("adoption.searchPlaceholder")}
+                className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
           </div>
 
           <div className="mb-4 flex flex-wrap gap-2">

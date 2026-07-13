@@ -14,9 +14,6 @@ dist
 .env.local
 .env.*.local
 
-# Scraper raw dump (regenerate with npm run scrape:snnc)
-scripts/snnc-raw.json
-
 # Guide PDFs (regenerate with npm run fetch:guides)
 public/guides/*.pdf
 

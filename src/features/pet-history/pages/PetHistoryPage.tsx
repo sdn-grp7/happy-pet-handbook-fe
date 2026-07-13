@@ -3,16 +3,13 @@ import { useSearchParams } from "react-router-dom";
 import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { PetHistoryTabs } from "@/features/pet-history/components/PetHistoryTabs";
-import { getPetHistory, getAllPetHistory } from "@/features/pet-history/api/petHistoryApi";
 import { getPet } from "@/features/pets/api/petsApi";
-import type { PetHistoryEvent } from "@/features/pet-history/types";
 import type { PetListing } from "@/features/pets/types";
 import { useI18n } from "@/i18n/I18nContext";
 
 export function PetHistoryPage() {
   const { t } = useI18n();
   const [searchParams] = useSearchParams();
-  const [events, setEvents] = useState<PetHistoryEvent[]>([]);
   const [pet, setPet] = useState<PetListing | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,12 +20,15 @@ export function PetHistoryPage() {
     setLoading(true);
     setPet(null);
 
-    const historyReq = petId ? getPetHistory(petId) : getAllPetHistory();
-    const petReq = petId ? getPet(petId) : Promise.resolve(undefined);
+    if (!petId) {
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
 
-    Promise.all([historyReq, petReq]).then(([history, listing]) => {
+    getPet(petId).then((listing) => {
       if (!active) return;
-      setEvents(history);
       setPet(listing ?? null);
       setLoading(false);
     });
@@ -55,12 +55,12 @@ export function PetHistoryPage() {
         <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
           {loading ? (
             <p className="text-sm text-muted-foreground">{t("petHistory.loading")}</p>
+          ) : !petId ? (
+            <p className="text-sm text-muted-foreground">{t("petHistory.empty")}</p>
+          ) : !pet ? (
+            <p className="text-sm text-muted-foreground">{t("petHistory.emptyMessage")}</p>
           ) : (
-            <PetHistoryTabs
-              events={events}
-              vaccinations={pet?.vaccinations}
-              previousOwner={pet?.previousOwner}
-            />
+            <PetHistoryTabs vaccinations={pet.vaccinations} owners={pet.owners} />
           )}
         </div>
       </section>

@@ -22,6 +22,7 @@ import { PetDetailPage } from "@/features/pets/pages/PetDetailPage";
 import { ReputationPage } from "@/features/reputation/pages/ReputationPage";
 import { PetHistoryPage } from "@/features/pet-history/pages/PetHistoryPage";
 import { PostAdoptionPage } from "@/features/post-adoption/pages/PostAdoptionPage";
+import { PublicProfilePage } from "@/features/auth/pages/PublicProfilePage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 /** Public pages — signed-in admins are sent to /admin. */
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="forum" element={<CommunityPage />} />
           <Route path="community" element={<CommunityPage />} />
           <Route path="reputation" element={<ReputationPage />} />
+          <Route path="users/:id" element={<PublicProfilePage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route
             path="profile"

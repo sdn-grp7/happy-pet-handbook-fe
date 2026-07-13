@@ -2,11 +2,11 @@ import { PageHero } from "@/features/guides/components/GuideBlocks";
 import { PageMeta } from "@/components/PageMeta";
 import { GoongMap, type GoongMapMarker } from "@/features/pets/components/GoongMap";
 import { PetImage } from "@/features/pets/components/PetImage";
-import { getPetPickupLocations } from "@/features/pets/api/petsApi";
+import { getPet, getPetPickupLocations } from "@/features/pets/api/petsApi";
 import type { PetListing } from "@/features/pets/types";
 import { useI18n } from "@/i18n/I18nContext";
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState, useEffect, useCallback, useRef, startTransition } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { MapPin, Search } from "lucide-react";
 
 /** Warm PawPath palette — no green. */
@@ -16,53 +16,68 @@ const STATUS_META: Record<PetListing["status"], { color: string }> = {
   adopted: { color: "#78716c" },
 };
 
-function hashSeed(id: string) {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/**
- * Spread pins that share one shelter point so they don't stack.
- * Golden-angle spiral ≈ 0.5–4 km around the real pickup (demo only).
- */
-function spreadAroundShelter(lat: number, lng: number, id: string) {
-  const seed = hashSeed(id);
-  const rank = (seed % 200) + 1;
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  const angle = rank * golden + (seed % 360) * (Math.PI / 180);
-  const radiusDeg = 0.0035 * Math.sqrt(rank); // ~0.4km → ~5km
-  const wobbleLat = ((seed % 97) / 97 - 0.5) * 0.002;
-  const wobbleLng = (((seed >> 8) % 97) / 97 - 0.5) * 0.002;
-  return {
-    lat: lat + Math.sin(angle) * radiusDeg + wobbleLat,
-    lng: lng + Math.cos(angle) * radiusDeg + wobbleLng,
-  };
+function petMatches(p: PetListing, idOrCode: string) {
+  return p.id === idOrCode || p.code === idOrCode;
 }
 
 export function MapPage() {
   const { t, locale } = useI18n();
+  const [searchParams] = useSearchParams();
+  const petFromUrl = searchParams.get("pet");
   const [pets, setPets] = useState<PetListing[]>([]);
+  const [petsReady, setPetsReady] = useState(false);
   const [filter, setFilter] = useState<"All" | PetListing["species"]>("All");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const listRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
-    getPetPickupLocations().then(setPets);
-  }, [locale]);
+    let cancelled = false;
+    setPetsReady(false);
+
+    (async () => {
+      const list = await getPetPickupLocations();
+      let merged = list;
+
+      // Deep-link may point at adopted (or otherwise excluded) pets — still show on map.
+      if (petFromUrl && !list.some((p) => petMatches(p, petFromUrl))) {
+        const extra = await getPet(petFromUrl);
+        if (
+          extra?.pickup?.address &&
+          extra.pickup.lat != null &&
+          extra.pickup.lng != null
+        ) {
+          merged = [...list, extra];
+        }
+      }
+
+      if (cancelled) return;
+      setPets(merged);
+      setPetsReady(true);
+
+      if (petFromUrl) {
+        const match = merged.find((p) => petMatches(p, petFromUrl));
+        setSelectedId(match?.id ?? null);
+        setFilter("All");
+        setQuery("");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, petFromUrl]);
 
   const places = useMemo(() => {
+    const q = query.trim().toLowerCase();
     return pets
       .filter((p) => p.pickup?.address)
       .filter((p) => (filter === "All" ? true : p.species === filter))
       .filter(
         (p) =>
-          p.name.toLowerCase().includes(query.toLowerCase()) ||
-          (p.pickup?.address ?? "").toLowerCase().includes(query.toLowerCase()),
+          !q ||
+          p.name.toLowerCase().includes(q) ||
+          (p.pickup?.address ?? "").toLowerCase().includes(q),
       );
   }, [pets, filter, query]);
 
@@ -72,41 +87,44 @@ export function MapPage() {
   );
 
   useEffect(() => {
-    if (selectedId && !places.some((p) => p.id === selectedId)) {
+    if (!petsReady || !selectedId) return;
+    if (!places.some((p) => p.id === selectedId)) {
+      if (pets.some((p) => p.id === selectedId)) return;
       setSelectedId(null);
     }
-  }, [places, selectedId]);
+  }, [places, selectedId, petsReady, pets]);
 
   useEffect(() => {
-    if (!selectedId) return;
-    listRefs.current[selectedId]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [selectedId]);
+    if (!selectedId || !petsReady) return;
+    const timer = window.setTimeout(() => {
+      listRefs.current[selectedId]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [selectedId, petsReady, places]);
 
   const mapMarkers: GoongMapMarker[] = useMemo(
     () =>
-      mappable.map((p) => {
-        const baseLat = p.pickup!.lat!;
-        const baseLng = p.pickup!.lng!;
-        const { lat, lng } = spreadAroundShelter(baseLat, baseLng, p.id);
-        return {
-          id: p.id,
-          lng,
-          lat,
-          color: STATUS_META[p.status].color,
-          label: p.name,
-          address: p.pickup!.address,
-          statusLabel: t(`adoption.${p.status}` as "adoption.available"),
-          imageUrl: p.images[0] ?? "",
-        };
-      }),
+      mappable.map((p) => ({
+        id: p.id,
+        lng: p.pickup!.lng!,
+        lat: p.pickup!.lat!,
+        color: STATUS_META[p.status].color,
+        label: p.name,
+        address: p.pickup!.address,
+        statusLabel: t(`adoption.${p.status}` as "adoption.available"),
+        imageUrl: p.images[0] ?? "",
+      })),
     [mappable, t],
   );
 
-  const selected = places.find((p) => p.id === selectedId) ?? null;
+  const selected = useMemo(
+    () => places.find((p) => p.id === selectedId) ?? null,
+    [places, selectedId],
+  );
   const filters: ("All" | PetListing["species"])[] = ["All", "dog", "cat"];
 
   const handleSelect = useCallback((id: string | null) => {
-    setSelectedId(id);
+    startTransition(() => setSelectedId(id));
   }, []);
 
   return (
@@ -142,21 +160,21 @@ export function MapPage() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_360px] gap-6">
-          <div className="relative rounded-2xl border border-border overflow-hidden shadow-[var(--shadow-card)] aspect-[4/3] lg:aspect-auto">
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="relative min-h-[420px] min-w-0 overflow-hidden rounded-2xl border border-border shadow-[var(--shadow-card)] lg:col-span-8 lg:min-h-[640px]">
             <GoongMap
               markers={mapMarkers}
               selectedId={selectedId}
               onSelect={handleSelect}
-              className="h-full min-h-[420px] lg:min-h-[520px]"
+              className="absolute inset-0 h-full w-full"
             />
 
             {selected && (
-              <div className="absolute bottom-4 left-4 right-4 sm:right-auto sm:max-w-sm rounded-xl bg-card/95 backdrop-blur border border-border overflow-hidden shadow-lg z-10 pointer-events-auto">
+              <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-10 max-w-sm overflow-hidden rounded-xl border border-border bg-card/95 shadow-lg backdrop-blur sm:right-auto">
                 <PetImage
                   src={selected.images[0]}
                   alt={selected.name}
-                  className="w-full h-28 object-cover"
+                  className="h-28 w-full object-cover"
                 />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -164,22 +182,22 @@ export function MapPage() {
                       <div className="text-xs uppercase tracking-wide text-muted-foreground">
                         {t(`adoption.${selected.status}` as "adoption.available")}
                       </div>
-                      <div className="font-semibold mt-0.5">{selected.name}</div>
+                      <div className="mt-0.5 font-semibold">{selected.name}</div>
                     </div>
                     <button
                       onClick={() => setSelectedId(null)}
-                      className="text-muted-foreground hover:text-foreground text-sm"
+                      className="text-sm text-muted-foreground hover:text-foreground"
                       aria-label="Close"
                     >
                       ✕
                     </button>
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground flex items-center gap-1.5">
+                  <div className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5 shrink-0" /> {selected.pickup?.address}
                   </div>
                   <Link
                     to={`/adoption?pet=${selected.id}`}
-                    className="mt-3 inline-block text-sm text-primary font-medium hover:underline"
+                    className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
                   >
                     {t("map.viewDetails")}
                   </Link>
@@ -188,7 +206,7 @@ export function MapPage() {
             )}
           </div>
 
-          <aside className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+          <aside className="max-h-[640px] space-y-3 overflow-y-auto pr-1 lg:col-span-4">
             <p className="text-xs text-muted-foreground px-1">
               {t("map.pinCount", { count: mapMarkers.length, total: places.length })}
             </p>

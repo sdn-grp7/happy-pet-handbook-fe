@@ -8,7 +8,6 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "scrape:snnc": "node scripts/scrape-snnc.mjs",
     "fetch:guides": "node scripts/fetch-guide-pdfs.mjs",
     "postinstall": "node scripts/copy-pdf-worker.mjs"
   },

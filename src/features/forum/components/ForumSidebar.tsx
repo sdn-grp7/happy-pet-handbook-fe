@@ -42,7 +42,7 @@ export function ForumSidebar({
   };
 
   return (
-    <aside className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] lg:sticky lg:top-24">
+    <aside className="w-full rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-tight">{labels.filters}</h2>
         <Button
@@ -67,7 +67,7 @@ export function ForumSidebar({
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex max-h-64 flex-wrap content-start gap-1.5 overflow-y-auto pr-1">
         {chips.map((chip) => {
           const active = filter === chip;
           return (

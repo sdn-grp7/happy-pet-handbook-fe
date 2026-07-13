@@ -11,9 +11,12 @@ export async function getPets(): Promise<PetListing[]> {
 }
 
 export async function getPetsAdoptedBy(userId: string): Promise<PetListing[]> {
-  const data = await apiRequest<PetsResponse>(
-    `/api/pets?adoptedBy=${encodeURIComponent(userId)}`,
-  );
+  const data = await apiRequest<PetsResponse>(`/api/pets?adoptedBy=${encodeURIComponent(userId)}`);
+  return localizePets(data.pets ?? []);
+}
+
+export async function getPetsPostedBy(userId: string): Promise<PetListing[]> {
+  const data = await apiRequest<PetsResponse>(`/api/pets?postedBy=${encodeURIComponent(userId)}`);
   return localizePets(data.pets ?? []);
 }
 

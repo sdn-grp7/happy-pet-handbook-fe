@@ -82,8 +82,7 @@ export function ListPetPage() {
       toast.error(t("listPet.ageInvalid"));
       return;
     }
-    const ageMonths =
-      form.ageUnit === "years" ? Math.round(ageNum * 12) : Math.round(ageNum);
+    const ageMonths = form.ageUnit === "years" ? Math.round(ageNum * 12) : Math.round(ageNum);
     if (ageMonths > 360) {
       toast.error(t("listPet.ageInvalid"));
       return;

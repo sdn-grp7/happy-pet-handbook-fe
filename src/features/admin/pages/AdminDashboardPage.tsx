@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, ChevronRight, HeartHandshake } from "lucide-react";
+import { BookOpen, ChevronRight, HeartHandshake, Mail } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { useI18n } from "@/i18n/I18nContext";
 
@@ -15,6 +15,12 @@ const ADMIN_LINKS = [
     icon: HeartHandshake,
     titleKey: "admin.adoptionTitle" as const,
     descKey: "admin.adoptionDesc" as const,
+  },
+  {
+    to: "/admin/contact",
+    icon: Mail,
+    titleKey: "admin.contactTitle" as const,
+    descKey: "admin.contactDesc" as const,
   },
 ];
 

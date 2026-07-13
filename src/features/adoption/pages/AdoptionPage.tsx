@@ -97,9 +97,7 @@ export function AdoptionPage() {
       if (status !== "all" && p.status !== status) return false;
       if (weight !== "all" && !WEIGHT_MATCH[weight](p.weightKg)) return false;
       if (q) {
-        const haystack = [p.name, p.code, p.breed, p.pickup?.address ?? ""]
-          .join(" ")
-          .toLowerCase();
+        const haystack = [p.name, p.code, p.breed, p.pickup?.address ?? ""].join(" ").toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -157,7 +155,10 @@ export function AdoptionPage() {
       <section className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-4 flex justify-end">
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <Link to={user ? "/list-pet" : "/login"} state={user ? undefined : { from: "/list-pet" }}>
+            <Link
+              to={user ? "/list-pet" : "/login"}
+              state={user ? undefined : { from: "/list-pet" }}
+            >
               <Upload className="h-3.5 w-3.5" />
               {t("nav.listPet")}
             </Link>
@@ -338,6 +339,11 @@ export function AdoptionPage() {
                     alt={pet.name}
                     className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
+                  {user?.id && pet.postedById === user.id ? (
+                    <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground shadow">
+                      {t("adoption.yourListing")}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-start justify-between gap-2">
@@ -359,7 +365,10 @@ export function AdoptionPage() {
                         <span className="font-medium text-foreground">{pet.adoptedBy.name}</span>
                       </>
                     ) : (
-                      <span className="invisible">—</span>
+                      <>
+                        {t("pet.listedBy")}{" "}
+                        <span className="font-medium text-foreground">{pet.postedByName}</span>
+                      </>
                     )}
                   </p>
                   <p className="mt-2 line-clamp-2 min-h-10 text-sm text-muted-foreground">

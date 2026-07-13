@@ -3,7 +3,6 @@ import { AlertCircle, RefreshCw, Send } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { LoginPrompt } from "@/features/auth/components/LoginPrompt";
@@ -25,32 +24,32 @@ import {
   type ForumViewMode,
 } from "@/features/forum/components/ForumSidebar";
 import { ForumPostCard, type ForumPostDraft } from "@/features/forum/components/ForumPostCard";
+import { ForumImageUploader } from "@/features/forum/components/ForumImageUploader";
+import {
+  FORUM_TAG_I18N,
+  FORUM_TAG_OPTIONS,
+  ForumTagPicker,
+} from "@/features/forum/components/ForumTagPicker";
 import type { FeedComment, FeedPost, PostPayload } from "@/features/forum/types";
 import { useI18n } from "@/i18n/I18nContext";
-import type { TranslationKey } from "@/i18n/I18nContext";
 import { cn } from "@/lib/utils";
 import { toast } from "@/shared/lib/toast";
 
-const KNOWN_TAG_KEYS: Record<string, TranslationKey> = {
-  Basics: "forum.topicBasics",
-  Nutrition: "forum.topicNutrition",
-  Training: "forum.topicTraining",
-  Health: "forum.topicHealth",
-  Stories: "forum.topicStories",
-};
-
 const EMPTY_POST_DRAFT: ForumPostDraft = {
   content: "",
-  tagsText: "",
-  imageUrlsText: "",
+  tags: [],
+  imageUrls: [],
 };
 
 const TEXT = {
   composerTitle: "T\u1ea1o b\u00e0i vi\u1ebft",
   contentPlaceholder:
     "Chia s\u1ebb c\u00e2u chuy\u1ec7n, c\u00e2u h\u1ecfi ho\u1eb7c m\u1eb9o c\u1ee7a b\u1ea1n...",
-  tagsPlaceholder: "Tag, c\u00e1ch nhau b\u1eb1ng d\u1ea5u ph\u1ea9y",
-  imagesPlaceholder: "URL \u1ea3nh, m\u1ed7i d\u00f2ng m\u1ed9t link",
+  tagsLabel: "Tag",
+  addImages: "Th\u00eam \u1ea3nh",
+  uploading: "\u0110ang t\u1ea3i l\u00ean...",
+  imageHint: "T\u1ed1i \u0111a 4 \u1ea3nh, upload qua Cloudinary.",
+  removeImage: "X\u00f3a \u1ea3nh",
   createPost: "\u0110\u0103ng b\u00e0i",
   creatingPost: "\u0110ang \u0111\u0103ng...",
   feedErrorTitle: "Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c Feed",
@@ -68,6 +67,8 @@ const TEXT = {
   savedComment: "\u0110\u00e3 l\u01b0u b\u00ecnh lu\u1eadn.",
   deletedComment: "\u0110\u00e3 x\u00f3a b\u00ecnh lu\u1eadn.",
   likeError: "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt n\u00fat tim.",
+  liked: "\u0110\u00e3 th\u1ea3 tym.",
+  unliked: "\u0110\u00e3 b\u1ecf tym.",
   genericError: "C\u00f3 l\u1ed7i x\u1ea3y ra. Vui l\u00f2ng th\u1eed l\u1ea1i.",
 };
 
@@ -104,33 +105,19 @@ function FeedSkeleton({ viewMode }: { viewMode: ForumViewMode }) {
   );
 }
 
-function splitTags(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function splitImageUrls(value: string) {
-  return value
-    .split(/[\n,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 function draftToPayload(draft: ForumPostDraft): PostPayload {
   return {
     content: draft.content.trim(),
-    tags: splitTags(draft.tagsText),
-    imageUrls: splitImageUrls(draft.imageUrlsText),
+    tags: draft.tags,
+    imageUrls: draft.imageUrls,
   };
 }
 
 function postToDraft(post: FeedPost): ForumPostDraft {
   return {
     content: post.content,
-    tagsText: post.tags.join(", "),
-    imageUrlsText: post.imageUrls.join("\n"),
+    tags: post.tags.filter((tag) => (FORUM_TAG_OPTIONS as readonly string[]).includes(tag)),
+    imageUrls: post.imageUrls.slice(0, 4),
   };
 }
 
@@ -196,13 +183,33 @@ export function CommunityPage() {
       feedPosts.forEach((post) => {
         if (post.comments) {
           seededComments[post._id] = post.comments;
-          seededLoaded[post._id] = true;
+          seededLoaded[post._id] = post.commentsCount <= post.comments.length;
         }
       });
 
       setPosts(feedPosts);
       setCommentsByPost((prev) => ({ ...prev, ...seededComments }));
       setCommentsLoaded((prev) => ({ ...prev, ...seededLoaded }));
+      setIsLoading(false);
+
+      // Prefetch up to 3 comments per post for card preview (non-blocking).
+      const previewTargets = feedPosts.filter(
+        (post) => post.commentsCount > 0 && !seededComments[post._id],
+      );
+      void Promise.all(
+        previewTargets.map(async (post) => {
+          try {
+            const comments = await getPostComments(post._id, { signal, limit: 3 });
+            if (signal?.aborted) return;
+            setCommentsByPost((prev) => ({ ...prev, [post._id]: comments }));
+            if (post.commentsCount <= comments.length) {
+              setCommentsLoaded((prev) => ({ ...prev, [post._id]: true }));
+            }
+          } catch {
+            // Preview is best-effort; full list still loads on expand.
+          }
+        }),
+      );
     } catch (error) {
       if (signal?.aborted) return;
       setIsError(true);
@@ -247,9 +254,12 @@ export function CommunityPage() {
 
   const tagOptions = useMemo(
     () =>
-      [...new Set(posts.flatMap((post) => post.tags ?? []).filter(Boolean))].sort((a, b) =>
-        a.localeCompare(b),
-      ),
+      [
+        ...new Set([
+          ...FORUM_TAG_OPTIONS,
+          ...posts.flatMap((post) => post.tags ?? []).filter(Boolean),
+        ]),
+      ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
     [posts],
   );
 
@@ -260,7 +270,7 @@ export function CommunityPage() {
   }, [filter, tagOptions]);
 
   const topicLabel = (topic: string) => {
-    const key = KNOWN_TAG_KEYS[topic];
+    const key = FORUM_TAG_I18N[topic as keyof typeof FORUM_TAG_I18N];
     return key ? t(key) : topic;
   };
 
@@ -307,6 +317,9 @@ export function CommunityPage() {
         ...created,
         authorId: created.authorId ?? user.id,
         authorDisplayName: created.authorDisplayName || user.name,
+        ...(created.authorAvatar || user.avatar
+          ? { authorAvatar: created.authorAvatar || user.avatar }
+          : {}),
       };
       setPosts((prev) => sortPosts([hydrated, ...prev]));
       setPostDraft(EMPTY_POST_DRAFT);
@@ -376,12 +389,20 @@ export function CommunityPage() {
     setExpandedPosts((prev) => ({ ...prev, [postId]: nextOpen }));
 
     if (nextOpen) {
-      void loadComments(postId);
+      const previewOnly =
+        !commentsLoaded[postId] ||
+        (posts.find((p) => p._id === postId)?.commentsCount ?? 0) >
+          (commentsByPost[postId]?.length ?? 0);
+      void loadComments(postId, previewOnly);
     }
   };
 
   const toggleLike = async (post: FeedPost) => {
-    if (!token || !user || likeBusyIds[post._id]) return;
+    if (!user || likeBusyIds[post._id]) return;
+    if (!token) {
+      toast.error(t("forum.loginMessage"));
+      return;
+    }
 
     const nextLiked = !post.likedByMe;
     const optimisticPost: FeedPost = {
@@ -402,10 +423,12 @@ export function CommunityPage() {
           ...updated,
           _id: updated._id || current._id,
           authorId: updated.authorId ?? current.authorId,
+          authorAvatar: updated.authorAvatar ?? current.authorAvatar,
           likedByMe: result.likedByMe ?? updated.likedByMe ?? optimisticPost.likedByMe,
           likesCount: result.likesCount ?? updated.likesCount ?? optimisticPost.likesCount,
         };
       });
+      toast.success(nextLiked ? TEXT.liked : TEXT.unliked);
     } catch (error) {
       patchPost(post._id, () => post);
       toast.error(error instanceof Error ? error.message : TEXT.likeError);
@@ -428,6 +451,9 @@ export function CommunityPage() {
         postId: created.postId ?? post._id,
         authorId: created.authorId ?? user.id,
         authorDisplayName: created.authorDisplayName || user.name,
+        ...(created.authorAvatar || user.avatar
+          ? { authorAvatar: created.authorAvatar || user.avatar }
+          : {}),
         content: created.content || content,
       };
 
@@ -540,24 +566,26 @@ export function CommunityPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
-          <ForumSidebar
-            topics={tagOptions}
-            filter={filter}
-            onFilterChange={setFilter}
-            query={query}
-            onQueryChange={setQuery}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            topicLabel={topicLabel}
-            labels={{
-              filters: t("forum.filters"),
-              reset: t("forum.reset"),
-              search: t("forum.search"),
-              all: t("forum.all"),
-            }}
-          />
+      <section className="mx-auto w-full max-w-6xl px-6 py-8">
+        <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <ForumSidebar
+              topics={tagOptions}
+              filter={filter}
+              onFilterChange={setFilter}
+              query={query}
+              onQueryChange={setQuery}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              topicLabel={topicLabel}
+              labels={{
+                filters: t("forum.filters"),
+                reset: t("forum.reset"),
+                search: t("forum.search"),
+                all: t("forum.all"),
+              }}
+            />
+          </div>
 
           <div className="min-w-0 space-y-5">
             {canInteract ? (
@@ -567,7 +595,7 @@ export function CommunityPage() {
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h2 className="text-sm font-semibold">{TEXT.composerTitle}</h2>
-                  <p className="text-xs text-muted-foreground">{user?.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.name}</p>
                 </div>
                 <Textarea
                   value={postDraft.content}
@@ -575,23 +603,29 @@ export function CommunityPage() {
                     setPostDraft((prev) => ({ ...prev, content: event.target.value }))
                   }
                   placeholder={TEXT.contentPlaceholder}
-                  className="min-h-[108px]"
+                  className="min-h-[108px] resize-y"
                 />
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <Input
-                    value={postDraft.tagsText}
-                    onChange={(event) =>
-                      setPostDraft((prev) => ({ ...prev, tagsText: event.target.value }))
-                    }
-                    placeholder={TEXT.tagsPlaceholder}
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-xs text-muted-foreground">{TEXT.tagsLabel}</p>
+                  <ForumTagPicker
+                    value={postDraft.tags}
+                    onChange={(tags) => setPostDraft((prev) => ({ ...prev, tags }))}
+                    topicLabel={topicLabel}
+                    disabled={creatingPost}
                   />
-                  <Textarea
-                    value={postDraft.imageUrlsText}
-                    onChange={(event) =>
-                      setPostDraft((prev) => ({ ...prev, imageUrlsText: event.target.value }))
-                    }
-                    placeholder={TEXT.imagesPlaceholder}
-                    className="min-h-[42px]"
+                </div>
+                <div className="mt-3">
+                  <ForumImageUploader
+                    token={token}
+                    value={postDraft.imageUrls}
+                    onChange={(imageUrls) => setPostDraft((prev) => ({ ...prev, imageUrls }))}
+                    disabled={creatingPost}
+                    labels={{
+                      add: TEXT.addImages,
+                      uploading: TEXT.uploading,
+                      hint: TEXT.imageHint,
+                      remove: TEXT.removeImage,
+                    }}
                   />
                 </div>
                 <div className="mt-3 flex justify-end">
@@ -609,89 +643,94 @@ export function CommunityPage() {
               <LoginPrompt title={t("forum.loginTitle")} message={t("forum.loginMessage")} />
             )}
 
-            {isLoading ? (
-              <FeedSkeleton viewMode={viewMode} />
-            ) : isError ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>{TEXT.feedErrorTitle}</AlertTitle>
-                <AlertDescription>
-                  <p>{TEXT.feedErrorBody}</p>
-                  {errorMessage ? <p className="mt-1 text-xs opacity-80">{errorMessage}</p> : null}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 gap-1.5"
-                    onClick={() => void loadFeed()}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    {TEXT.retry}
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            ) : showEmptyFeed ? (
-              <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                {t("forum.empty")}
-              </div>
-            ) : showEmptyFiltered ? (
-              <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                {TEXT.emptyFiltered}
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "gap-5",
-                  viewMode === "grid" ? "grid sm:grid-cols-2" : "flex flex-col",
-                )}
-              >
-                {filtered.map((post) => (
-                  <ForumPostCard
-                    key={post._id}
-                    post={post}
-                    comments={commentsByPost[post._id] ?? []}
-                    commentsLoaded={Boolean(commentsLoaded[post._id])}
-                    commentsLoading={Boolean(commentsLoading[post._id])}
-                    commentsError={commentsError[post._id]}
-                    isCommentsOpen={Boolean(expandedPosts[post._id])}
-                    canInteract={canInteract}
-                    canEditPost={isOwnPost(post)}
-                    isEditingPost={editingPostId === post._id}
-                    postEditDraft={postEditDraft}
-                    postBusy={postBusyId === post._id}
-                    likeBusy={Boolean(likeBusyIds[post._id])}
-                    commentDraft={commentDrafts[post._id] ?? ""}
-                    editingCommentId={
-                      editingComment?.postId === post._id ? editingComment.commentId : null
-                    }
-                    commentEditDraft={commentEditDraft}
-                    commentBusyId={commentBusyId}
-                    compact={viewMode === "grid"}
-                    topicLabel={topicLabel}
-                    canEditComment={isOwnComment}
-                    onToggleComments={() => toggleComments(post._id)}
-                    onStartEditPost={() => startEditPost(post)}
-                    onCancelEditPost={cancelEditPost}
-                    onPostEditDraftChange={setPostEditDraft}
-                    onSavePost={() => void savePost(post)}
-                    onDeletePost={() => void removePost(post)}
-                    onToggleLike={() => void toggleLike(post)}
-                    onCommentDraftChange={(value) =>
-                      setCommentDrafts((prev) => ({ ...prev, [post._id]: value }))
-                    }
-                    onSubmitComment={() => void createPostComment(post)}
-                    onStartEditComment={(comment) => startEditComment(post._id, comment)}
-                    onCancelEditComment={cancelEditComment}
-                    onCommentEditDraftChange={setCommentEditDraft}
-                    onSaveComment={(comment) => void saveComment(post._id, comment)}
-                    onDeleteComment={(comment) => void removeComment(post._id, comment)}
-                    labels={{
-                      comments: t("forum.comments"),
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="min-h-[280px]">
+              {isLoading ? (
+                <FeedSkeleton viewMode={viewMode} />
+              ) : isError ? (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{TEXT.feedErrorTitle}</AlertTitle>
+                  <AlertDescription>
+                    <p>{TEXT.feedErrorBody}</p>
+                    {errorMessage ? (
+                      <p className="mt-1 text-xs opacity-80">{errorMessage}</p>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 gap-1.5"
+                      onClick={() => void loadFeed()}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      {TEXT.retry}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : showEmptyFeed ? (
+                <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                  {t("forum.empty")}
+                </div>
+              ) : showEmptyFiltered ? (
+                <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                  {TEXT.emptyFiltered}
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "gap-5",
+                    viewMode === "grid" ? "grid sm:grid-cols-2" : "flex flex-col",
+                  )}
+                >
+                  {filtered.map((post) => (
+                    <ForumPostCard
+                      key={post._id}
+                      post={post}
+                      comments={commentsByPost[post._id] ?? []}
+                      commentsLoaded={Boolean(commentsLoaded[post._id])}
+                      commentsLoading={Boolean(commentsLoading[post._id])}
+                      commentsError={commentsError[post._id]}
+                      isCommentsOpen={Boolean(expandedPosts[post._id])}
+                      canInteract={canInteract}
+                      canEditPost={isOwnPost(post)}
+                      isEditingPost={editingPostId === post._id}
+                      postEditDraft={postEditDraft}
+                      postBusy={postBusyId === post._id}
+                      likeBusy={Boolean(likeBusyIds[post._id])}
+                      commentDraft={commentDrafts[post._id] ?? ""}
+                      editingCommentId={
+                        editingComment?.postId === post._id ? editingComment.commentId : null
+                      }
+                      commentEditDraft={commentEditDraft}
+                      commentBusyId={commentBusyId}
+                      uploadToken={token}
+                      compact={viewMode === "grid"}
+                      topicLabel={topicLabel}
+                      canEditComment={isOwnComment}
+                      onToggleComments={() => toggleComments(post._id)}
+                      onStartEditPost={() => startEditPost(post)}
+                      onCancelEditPost={cancelEditPost}
+                      onPostEditDraftChange={setPostEditDraft}
+                      onSavePost={() => void savePost(post)}
+                      onDeletePost={() => void removePost(post)}
+                      onToggleLike={() => void toggleLike(post)}
+                      onCommentDraftChange={(value) =>
+                        setCommentDrafts((prev) => ({ ...prev, [post._id]: value }))
+                      }
+                      onSubmitComment={() => void createPostComment(post)}
+                      onStartEditComment={(comment) => startEditComment(post._id, comment)}
+                      onCancelEditComment={cancelEditComment}
+                      onCommentEditDraftChange={setCommentEditDraft}
+                      onSaveComment={(comment) => void saveComment(post._id, comment)}
+                      onDeleteComment={(comment) => void removeComment(post._id, comment)}
+                      labels={{
+                        comments: t("forum.comments"),
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

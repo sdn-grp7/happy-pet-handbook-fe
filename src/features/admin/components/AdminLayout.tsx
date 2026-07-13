@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { BookOpen, HeartHandshake, LayoutDashboard, LogOut, Shield } from "lucide-react";
+import { BookOpen, HeartHandshake, LayoutDashboard, LogOut, Mail, Shield } from "lucide-react";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { useI18n } from "@/i18n/I18nContext";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,12 @@ const NAV = [
     end: false,
     icon: HeartHandshake,
     labelKey: "admin.navAdoption" as const,
+  },
+  {
+    to: "/admin/contact",
+    end: false,
+    icon: Mail,
+    labelKey: "admin.navContact" as const,
   },
 ];
 
@@ -87,3 +93,5 @@ export function AdminLayout() {
     </div>
   );
 }
+
+export default AdminLayout;

@@ -1,6 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Heart, MapPin, Syringe, StickyNote, UserRound, MessageCircle } from "lucide-react";
+import {
+  Heart,
+  MapPin,
+  Syringe,
+  StickyNote,
+  UserRound,
+  MessageCircle,
+  PlusCircle,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +17,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { PetImage } from "@/features/pets/components/PetImage";
+import { addPetVaccination } from "@/features/pets/api/petsApi";
 import { submitAdoptionRequest } from "@/features/adoption/api/adoptionApi";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
 import { PetHistoryTimeline } from "@/features/pet-history/components/PetHistoryTimeline";
@@ -17,7 +29,7 @@ import { getPetHistory } from "@/features/pet-history/api/petHistoryApi";
 import type { PetHistoryEvent } from "@/features/pet-history/types";
 import { useI18n } from "@/i18n/I18nContext";
 import type { TranslationKey } from "@/i18n/I18nContext";
-import type { PetListing } from "@/features/pets/types";
+import type { PetListing, PetVaccination } from "@/features/pets/types";
 import { cn } from "@/lib/utils";
 
 const STATUS_KEYS: Record<PetListing["status"], TranslationKey> = {
@@ -31,6 +43,46 @@ const GENDER_KEYS: Record<PetListing["gender"], TranslationKey> = {
   female: "pet.female",
   unknown: "pet.unknown",
 };
+
+type VaccinationDraft = {
+  name: string;
+  date: string;
+  nextDue: string;
+  notes: string;
+};
+
+const EMPTY_VACCINATION_DRAFT: VaccinationDraft = {
+  name: "",
+  date: "",
+  nextDue: "",
+  notes: "",
+};
+
+function vaccinationKey(vaccination: PetVaccination) {
+  return `${vaccination.name.trim().toLowerCase()}-${vaccination.date}`;
+}
+
+function mergeVaccinations(records: PetVaccination[]) {
+  const unique = new Map<string, PetVaccination>();
+
+  for (const record of records) {
+    const key = vaccinationKey(record);
+    if (!unique.has(key)) unique.set(key, record);
+  }
+
+  return Array.from(unique.values()).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function vaccinationFromHistory(
+  event: PetHistoryEvent,
+  t: (key: TranslationKey, vars?: Record<string, string | number>) => string,
+): PetVaccination {
+  return {
+    name: event.titleKey ? t(event.titleKey as TranslationKey) : event.title,
+    date: event.date.slice(0, 10),
+    notes: event.descriptionKey ? t(event.descriptionKey as TranslationKey) : event.description,
+  };
+}
 
 function zaloUrl(phone: string) {
   const digits = phone.replace(/\D/g, "");
@@ -50,9 +102,10 @@ type PetDetailModalProps = {
   pet: PetListing | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onPetChange?: (pet: PetListing) => void;
 };
 
-export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps) {
+export function PetDetailModal({ pet, open, onOpenChange, onPetChange }: PetDetailModalProps) {
   const { user } = useAuth();
   const { t } = useI18n();
   const location = useLocation();
@@ -62,6 +115,11 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [petHistory, setPetHistory] = useState<PetHistoryEvent[]>([]);
+  const [vaccinations, setVaccinations] = useState<PetVaccination[]>([]);
+  const [vaccinationDraft, setVaccinationDraft] = useState<VaccinationDraft>({
+    ...EMPTY_VACCINATION_DRAFT,
+  });
+  const [addingVaccination, setAddingVaccination] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -71,25 +129,39 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
     setSubmitted(false);
     setSubmitting(false);
     setPetHistory([]);
+    setVaccinations(pet?.vaccinations ?? []);
+    setVaccinationDraft({ ...EMPTY_VACCINATION_DRAFT });
+    setAddingVaccination(false);
 
     if (!pet?.id) return;
 
     let active = true;
     getPetHistory(pet.id).then((events) => {
-      if (active) setPetHistory(events);
+      if (!active) return;
+
+      setPetHistory(events);
+      // Bind existing vaccination history events into the editable vaccination book.
+      setVaccinations((current) =>
+        mergeVaccinations([
+          ...current,
+          ...events
+            .filter((event) => event.type === "vaccination")
+            .map((event) => vaccinationFromHistory(event, t)),
+        ]),
+      );
     });
 
     return () => {
       active = false;
     };
-  }, [open, pet?.id]);
+  }, [open, pet?.id, pet?.vaccinations, t]);
 
   if (!pet) return null;
 
   const images = pet.images.length > 0 ? pet.images : [""];
   const hasPreviousOwner = Boolean(pet.previousOwner?.name);
 
-  const handleAdopt = async (e: React.FormEvent) => {
+  const handleAdopt = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setSubmitting(true);
@@ -99,6 +171,38 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
       setShowAdoptForm(false);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const updateVaccinationDraft = (field: keyof VaccinationDraft, value: string) => {
+    setVaccinationDraft((draft) => ({ ...draft, [field]: value }));
+  };
+
+  const handleAddVaccination = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const name = vaccinationDraft.name.trim();
+    const date = vaccinationDraft.date;
+    if (!name || !date) return;
+
+    const newVaccination: PetVaccination = {
+      name,
+      date,
+      nextDue: vaccinationDraft.nextDue || undefined,
+      notes: vaccinationDraft.notes.trim() || undefined,
+    };
+    const nextVaccinations = mergeVaccinations([newVaccination, ...vaccinations]);
+
+    // Optimistically update the local modal state, then mirror it into the mock API store.
+    setVaccinations(nextVaccinations);
+    setVaccinationDraft({ ...EMPTY_VACCINATION_DRAFT });
+    setAddingVaccination(true);
+
+    try {
+      const updatedPet = await addPetVaccination(pet.id, newVaccination);
+      onPetChange?.({ ...(updatedPet ?? pet), vaccinations: nextVaccinations });
+    } finally {
+      setAddingVaccination(false);
     }
   };
 
@@ -184,14 +288,19 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
               </p>
             )}
 
-            {pet.vaccinations.length > 0 && (
-              <section className="mt-6">
-                <h3 className="flex items-center gap-2 text-sm font-semibold">
-                  <Syringe className="h-4 w-4 text-primary" />
-                  {t("pet.vaccines")}
-                </h3>
+            <section className="mt-6">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Syringe className="h-4 w-4 text-primary" />
+                {t("pet.vaccines")}
+              </h3>
+
+              {vaccinations.length === 0 ? (
+                <p className="mt-3 rounded-xl border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
+                  {t("pet.noVaccines")}
+                </p>
+              ) : (
                 <ul className="mt-3 space-y-2">
-                  {pet.vaccinations.map((v, i) => (
+                  {vaccinations.map((v, i) => (
                     <li
                       key={`${v.name}-${v.date}-${i}`}
                       className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-sm"
@@ -209,8 +318,59 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
                     </li>
                   ))}
                 </ul>
-              </section>
-            )}
+              )}
+
+              <form
+                onSubmit={handleAddVaccination}
+                className="mt-3 space-y-3 rounded-xl border border-border bg-card p-3"
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="vaccination-name">{t("pet.vaccineName")}</Label>
+                    <Input
+                      id="vaccination-name"
+                      value={vaccinationDraft.name}
+                      onChange={(event) => updateVaccinationDraft("name", event.target.value)}
+                      placeholder={t("pet.vaccineNamePlaceholder")}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="vaccination-date">{t("pet.vaccineDate")}</Label>
+                    <Input
+                      id="vaccination-date"
+                      type="date"
+                      value={vaccinationDraft.date}
+                      onChange={(event) => updateVaccinationDraft("date", event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="vaccination-next-due">{t("pet.vaccineNextDue")}</Label>
+                    <Input
+                      id="vaccination-next-due"
+                      type="date"
+                      value={vaccinationDraft.nextDue}
+                      onChange={(event) => updateVaccinationDraft("nextDue", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="vaccination-notes">{t("pet.vaccineNotes")}</Label>
+                    <Textarea
+                      id="vaccination-notes"
+                      rows={2}
+                      value={vaccinationDraft.notes}
+                      onChange={(event) => updateVaccinationDraft("notes", event.target.value)}
+                      placeholder={t("pet.vaccineNotesPlaceholder")}
+                    />
+                  </div>
+                </div>
+                <Button type="submit" size="sm" disabled={addingVaccination}>
+                  <PlusCircle className="h-4 w-4" />
+                  {addingVaccination ? t("pet.savingVaccine") : t("pet.addVaccine")}
+                </Button>
+              </form>
+            </section>
 
             {pet.notes && (
               <section className="mt-6">

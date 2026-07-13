@@ -64,6 +64,12 @@ export function AdoptionPage() {
     [setSearchParams],
   );
 
+  const handlePetChange = useCallback((updatedPet: PetListing) => {
+    // Keep the listing grid and the open modal pointed at the same local mock object.
+    setPets((current) => current.map((pet) => (pet.id === updatedPet.id ? updatedPet : pet)));
+    setSelected(updatedPet);
+  }, []);
+
   return (
     <>
       <PageMeta title={t("adoption.metaTitle")} description={t("adoption.metaDesc")} />
@@ -126,7 +132,12 @@ export function AdoptionPage() {
         )}
       </section>
 
-      <PetDetailModal pet={selected} open={Boolean(selected)} onOpenChange={handleOpenChange} />
+      <PetDetailModal
+        pet={selected}
+        open={Boolean(selected)}
+        onOpenChange={handleOpenChange}
+        onPetChange={handlePetChange}
+      />
     </>
   );
 }

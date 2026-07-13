@@ -1,4 +1,4 @@
-import type { PetListing } from "@/features/pets/types";
+import type { PetListing, PetVaccination } from "@/features/pets/types";
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, type Locale } from "@/i18n/types";
 
 /**
@@ -3581,7 +3581,41 @@ export function getPickupLocations() {
         (p.status === "available" || p.status === "pending") &&
         p.pickup?.address &&
         p.pickup.lat != null &&
-        p.pickup.lng != null,
+      p.pickup.lng != null,
     ),
   );
+}
+
+export function addPetVaccinationToMock(petId: string, vaccination: PetVaccination) {
+  const pet = mockPets.find((p) => p.id === petId);
+  if (!pet) return undefined;
+
+  // Mock-only mutation: keep the in-memory vaccination book current until a real API exists.
+  pet.vaccinations = [vaccination, ...pet.vaccinations].sort((a, b) =>
+    b.date.localeCompare(a.date),
+  );
+  return getLocalizedPet(pet);
+}
+
+export function updatePetCareStatusInMock(
+  petId: string,
+  update: {
+    healthStatus?: string;
+    weightKg?: number;
+    notes?: string;
+    photoUrl?: string;
+  },
+) {
+  const pet = mockPets.find((p) => p.id === petId);
+  if (!pet) return undefined;
+
+  // Mock-only mutation: mirror a submitted post-adoption update onto the pet profile.
+  if (update.healthStatus) pet.healthStatus = update.healthStatus;
+  if (update.weightKg != null) pet.weightKg = update.weightKg;
+  if (update.notes !== undefined) pet.notes = update.notes;
+  if (update.photoUrl && !pet.images.includes(update.photoUrl)) {
+    pet.images = [...pet.images, update.photoUrl];
+  }
+
+  return getLocalizedPet(pet);
 }

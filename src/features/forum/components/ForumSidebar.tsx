@@ -2,12 +2,12 @@ import { RotateCcw, Search, LayoutList, LayoutGrid } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FORUM_TOPICS } from "@/features/forum/api/forumApi";
 
-export type ForumFilter = (typeof FORUM_TOPICS)[number] | "All";
+export type ForumFilter = "All" | string;
 export type ForumViewMode = "list" | "grid";
 
 type ForumSidebarProps = {
+  topics: string[];
   filter: ForumFilter;
   onFilterChange: (f: ForumFilter) => void;
   query: string;
@@ -24,6 +24,7 @@ type ForumSidebarProps = {
 };
 
 export function ForumSidebar({
+  topics,
   filter,
   onFilterChange,
   query,
@@ -33,7 +34,7 @@ export function ForumSidebar({
   topicLabel,
   labels,
 }: ForumSidebarProps) {
-  const chips: ForumFilter[] = ["All", ...FORUM_TOPICS];
+  const chips: ForumFilter[] = ["All", ...topics];
 
   const reset = () => {
     onFilterChange("All");

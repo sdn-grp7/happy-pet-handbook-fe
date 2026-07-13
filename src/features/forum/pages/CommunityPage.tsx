@@ -1,25 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
-import { LoginPrompt } from "@/features/auth/components/LoginPrompt";
-import { useAuth } from "@/features/auth/contexts/AuthContext";
-import { getForumThreads, FORUM_TOPICS } from "@/features/forum/api/forumApi";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getFeedPosts } from "@/features/forum/api/forumApi";
 import {
   ForumSidebar,
   type ForumFilter,
   type ForumViewMode,
 } from "@/features/forum/components/ForumSidebar";
 import { ForumPostCard } from "@/features/forum/components/ForumPostCard";
-import type { ForumThread } from "@/features/forum/types";
+import type { FeedPost } from "@/features/forum/types";
 import { useI18n } from "@/i18n/I18nContext";
 import type { TranslationKey } from "@/i18n/I18nContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "pawpath-forum-v2";
-
-const TOPIC_KEYS: Record<(typeof FORUM_TOPICS)[number], TranslationKey> = {
+const KNOWN_TAG_KEYS: Record<string, TranslationKey> = {
   Basics: "forum.topicBasics",
   Nutrition: "forum.topicNutrition",
   Training: "forum.topicTraining",
@@ -27,128 +24,114 @@ const TOPIC_KEYS: Record<(typeof FORUM_TOPICS)[number], TranslationKey> = {
   Stories: "forum.topicStories",
 };
 
-function loadPosts(fallback: ForumThread[]): ForumThread[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as ForumThread[];
-  } catch {
-    return fallback;
-  }
+function FeedSkeleton({ viewMode }: { viewMode: ForumViewMode }) {
+  const items = Array.from({ length: viewMode === "grid" ? 4 : 3 });
+
+  return (
+    <div className={cn("gap-5", viewMode === "grid" ? "grid sm:grid-cols-2" : "flex flex-col")}>
+      {items.map((_, index) => (
+        <article
+          key={index}
+          className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]"
+        >
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </div>
+          <div className="mt-4 space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-11/12" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+          <Skeleton className="mt-4 aspect-[4/3] w-full" />
+          <div className="mt-4 flex gap-4">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 export function CommunityPage() {
   const { t } = useI18n();
-  const { user } = useAuth();
-  const canInteract = Boolean(user);
 
-  const [posts, setPosts] = useState<ForumThread[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [filter, setFilter] = useState<ForumFilter>("All");
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState<ForumViewMode>("list");
-  const [draft, setDraft] = useState({
-    topic: "Basics" as (typeof FORUM_TOPICS)[number],
-    title: "",
-    body: "",
-  });
-  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
-  const topicLabel = (topic: string) => {
-    const key = TOPIC_KEYS[topic as (typeof FORUM_TOPICS)[number]];
-    return key ? t(key) : topic;
-  };
+  const loadFeed = useCallback(async (signal?: AbortSignal) => {
+    setIsLoading(true);
+    setIsError(false);
+    setErrorMessage("");
 
-  useEffect(() => {
-    getForumThreads().then((threads) => {
-      setPosts(loadPosts(threads));
-      setHydrated(true);
-    });
+    try {
+      const feedPosts = await getFeedPosts(signal);
+      if (signal?.aborted) return;
+      setPosts(feedPosts);
+    } catch (error) {
+      if (signal?.aborted) return;
+      setIsError(true);
+      setErrorMessage(error instanceof Error ? error.message : "Unknown error");
+      setPosts([]);
+    } finally {
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
-  }, [posts, hydrated]);
+    const controller = new AbortController();
+    void loadFeed(controller.signal);
+
+    return () => controller.abort();
+  }, [loadFeed]);
+
+  const tagOptions = useMemo(
+    () =>
+      [...new Set(posts.flatMap((post) => post.tags ?? []).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [posts],
+  );
+
+  useEffect(() => {
+    if (filter !== "All" && !tagOptions.includes(filter)) {
+      setFilter("All");
+    }
+  }, [filter, tagOptions]);
+
+  const topicLabel = (topic: string) => {
+    const key = KNOWN_TAG_KEYS[topic];
+    return key ? t(key) : topic;
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return posts
-      .filter((p) => (filter === "All" ? true : p.topic === filter))
-      .filter((p) => {
-        if (!q) return true;
-        return (
-          p.title.toLowerCase().includes(q) ||
-          p.body.toLowerCase().includes(q) ||
-          p.authorName.toLowerCase().includes(q) ||
-          (p.tags ?? []).some((tag) => tag.toLowerCase().includes(q))
-        );
-      })
-      .slice()
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    return posts.filter((post) => {
+      if (filter !== "All" && !post.tags.includes(filter)) return false;
+      if (!q) return true;
+
+      const haystack = [post.authorDisplayName, post.content, ...post.tags, post.createdAt]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
   }, [posts, filter, query]);
 
-  const submitPost = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canInteract || !user) return;
-    if (!draft.title.trim() || !draft.body.trim()) return;
-    const post: ForumThread = {
-      id: `p${Date.now()}`,
-      authorId: user.id,
-      authorName: user.name,
-      avatar: "🐾",
-      avatarUrl: user.avatar,
-      badge: "Member",
-      topic: draft.topic,
-      tags: [draft.topic],
-      title: draft.title.trim(),
-      body: draft.body.trim(),
-      upvotes: 0,
-      upvoted: false,
-      promotedToGuide: false,
-      createdAt: new Date().toISOString(),
-      replies: [],
-    };
-    setPosts((prev) => [post, ...prev]);
-    setDraft({ topic: draft.topic, title: "", body: "" });
-  };
-
-  const toggleLike = (id: string) => {
-    if (!canInteract) return;
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, upvoted: !p.upvoted, upvotes: p.upvotes + (p.upvoted ? -1 : 1) } : p,
-      ),
-    );
-  };
-
-  const submitComment = (postId: string) => {
-    if (!canInteract || !user) return;
-    const body = (commentDrafts[postId] || "").trim();
-    if (!body) return;
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              replies: [
-                ...p.replies,
-                {
-                  id: `c${Date.now()}`,
-                  authorId: user.id,
-                  authorName: user.name,
-                  avatarUrl: user.avatar,
-                  badge: "Member",
-                  body,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
-          : p,
-      ),
-    );
-    setCommentDrafts((d) => ({ ...d, [postId]: "" }));
-  };
+  const showEmptyFiltered = !isLoading && !isError && posts.length > 0 && filtered.length === 0;
+  const showEmptyFeed = !isLoading && !isError && posts.length === 0;
 
   return (
     <>
@@ -176,6 +159,7 @@ export function CommunityPage() {
       <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
           <ForumSidebar
+            topics={tagOptions}
             filter={filter}
             onFilterChange={setFilter}
             query={query}
@@ -191,67 +175,35 @@ export function CommunityPage() {
             }}
           />
 
-          <div className="min-w-0 space-y-5">
-            {canInteract ? (
-              <form
-                onSubmit={submitPost}
-                className="rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-card)]"
-              >
-                <div className="mb-3 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-semibold">{t("forum.startDiscussion")}</h2>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <select
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                    value={draft.topic}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        topic: e.target.value as (typeof FORUM_TOPICS)[number],
-                      })
-                    }
-                  >
-                    {FORUM_TOPICS.map((topic) => (
-                      <option key={topic} value={topic}>
-                        {topicLabel(topic)}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    className="flex-1"
-                    placeholder={t("forum.titlePlaceholder")}
-                    value={draft.title}
-                    onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                  />
-                </div>
-                <textarea
-                  className="mt-3 min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  placeholder={t("forum.bodyPlaceholder")}
-                  value={draft.body}
-                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-                />
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    {t("forum.postingAs", { name: user!.name })}
-                  </p>
+          <div className="min-w-0">
+            {isLoading ? (
+              <FeedSkeleton viewMode={viewMode} />
+            ) : isError ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Không tải được Feed</AlertTitle>
+                <AlertDescription>
+                  <p>Backend chưa phản hồi hoặc endpoint Feed đang lỗi.</p>
+                  {errorMessage ? <p className="mt-1 text-xs opacity-80">{errorMessage}</p> : null}
                   <Button
-                    type="submit"
+                    type="button"
+                    variant="outline"
                     size="sm"
-                    className="gap-1.5"
-                    disabled={!draft.title.trim() || !draft.body.trim()}
+                    className="mt-3 gap-1.5"
+                    onClick={() => void loadFeed()}
                   >
-                    {t("forum.post")} <Send className="h-3.5 w-3.5" />
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Thử lại
                   </Button>
-                </div>
-              </form>
-            ) : (
-              <LoginPrompt title={t("forum.loginTitle")} message={t("forum.loginMessage")} />
-            )}
-
-            {filtered.length === 0 ? (
+                </AlertDescription>
+              </Alert>
+            ) : showEmptyFeed ? (
               <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
                 {t("forum.empty")}
+              </div>
+            ) : showEmptyFiltered ? (
+              <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                Không có bài viết nào khớp bộ lọc hiện tại.
               </div>
             ) : (
               <div
@@ -262,22 +214,12 @@ export function CommunityPage() {
               >
                 {filtered.map((post) => (
                   <ForumPostCard
-                    key={post.id}
+                    key={post._id}
                     post={post}
                     compact={viewMode === "grid"}
-                    canInteract={canInteract}
-                    commentDraft={commentDrafts[post.id] || ""}
-                    onCommentDraftChange={(value) =>
-                      setCommentDrafts((d) => ({ ...d, [post.id]: value }))
-                    }
-                    onSubmitComment={() => submitComment(post.id)}
-                    onToggleLike={() => toggleLike(post.id)}
                     topicLabel={topicLabel}
                     labels={{
                       comments: t("forum.comments"),
-                      commentPlaceholder: t("forum.commentPlaceholder"),
-                      signInToReply: t("forum.signInToReply"),
-                      signIn: t("forum.signIn"),
                     }}
                   />
                 ))}

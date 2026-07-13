@@ -1,6 +1,5 @@
-import { apiRequest, API_BASE_URL } from "@/lib/api";
+import { apiRequest, API_BASE_URL, ApiError } from "@/lib/api";
 import type { GuideBook } from "@/features/guides/types";
-import { guideBooks, getBookBySlug as getMockBySlug } from "@/features/guides/mocks/data";
 
 type GuidesResponse = { guides: GuideBook[] };
 type GuideResponse = { guide: GuideBook };
@@ -20,23 +19,18 @@ function normalizeGuide(g: GuideBook): GuideBook {
   };
 }
 
-/** Public list — falls back to local mocks if API is unreachable. */
 export async function getGuides(): Promise<GuideBook[]> {
-  try {
-    const data = await apiRequest<GuidesResponse>("/api/guides");
-    return (data.guides ?? []).map(normalizeGuide);
-  } catch {
-    return guideBooks.map(normalizeGuide);
-  }
+  const data = await apiRequest<GuidesResponse>("/api/guides");
+  return (data.guides ?? []).map(normalizeGuide);
 }
 
 export async function getGuide(slug: string): Promise<GuideBook | undefined> {
   try {
     const data = await apiRequest<GuideResponse>(`/api/guides/${encodeURIComponent(slug)}`);
     return data.guide ? normalizeGuide(data.guide) : undefined;
-  } catch {
-    const mock = getMockBySlug(slug);
-    return mock ? normalizeGuide(mock) : undefined;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return undefined;
+    throw err;
   }
 }
 

@@ -13,4 +13,4 @@ npm run fetch:guides
 | `positive-reinforcement-dog.pdf` | `/training`   | Government of South Australia  |
 | `pet-preparedness.pdf`           | `/health`     | American Humane Society        |
 
-To add your own book: put the PDF in this folder and update `src/features/guides/mocks/data.ts`.
+To add or edit volumes in production, use the Admin → Guides panel (uploads go through the API).

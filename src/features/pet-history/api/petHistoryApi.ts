@@ -18,6 +18,7 @@ function mapCheckInToHistoryEvent(checkIn: PostAdoptionCheckIn): PetHistoryEvent
     descriptionKey: isSubmitted ? undefined : "petHistory.events.checkInScheduled.description",
     date: checkIn.submittedAt ?? checkIn.scheduledAt,
     recordedBy: "Adopter",
+    recordedByKey: "petHistory.recordedByAdopter",
     photoUrl: checkIn.photoUrl,
     healthReport: checkIn.healthReport,
   };

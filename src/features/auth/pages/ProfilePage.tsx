@@ -173,6 +173,14 @@ export function ProfilePage() {
                 <span className="rounded-full bg-muted px-2 py-0.5">Google linked</span>
               )}
             </div>
+            {account.role === "admin" && (
+              <Link
+                to="/admin"
+                className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+              >
+                {t("nav.admin")} →
+              </Link>
+            )}
             {avatarError && <p className="mt-2 text-sm text-destructive">{avatarError}</p>}
           </div>
           <button

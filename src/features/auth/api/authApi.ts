@@ -67,3 +67,18 @@ export async function changePassword(
   });
   return data.user;
 }
+
+export type PublicUserProfile = {
+  id: string;
+  name: string;
+  role: "user" | "admin";
+  avatar?: string;
+  createdAt?: string;
+};
+
+export async function fetchPublicProfile(userId: string): Promise<PublicUserProfile> {
+  const data = await apiRequest<{ user: PublicUserProfile }>(
+    `/api/auth/users/${encodeURIComponent(userId)}`,
+  );
+  return data.user;
+}

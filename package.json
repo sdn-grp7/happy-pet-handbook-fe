@@ -8,7 +8,6 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "scrape:snnc": "node scripts/scrape-snnc.mjs",
     "fetch:guides": "node scripts/fetch-guide-pdfs.mjs",
     "postinstall": "node scripts/copy-pdf-worker.mjs"
   },
@@ -41,6 +40,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-oauth/google": "^0.13.5",
+    "antd": "^6.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

@@ -18,9 +18,9 @@ type AuthContextValue = {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  loginGoogle: (idToken: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  loginGoogle: (idToken: string) => Promise<User>;
+  register: (name: string, email: string, password: string) => Promise<User>;
   updateUser: (user: User) => void;
   updateAvatar: (avatarUrl: string) => Promise<User>;
   changePassword: (newPassword: string, currentPassword?: string) => Promise<User>;
@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { token: nextToken, user: nextUser } = await loginWithEmail(email, password);
         persist(nextToken, nextUser);
+        return nextUser;
       } catch (err) {
         const message = err instanceof ApiError ? err.message : "Login failed";
         setLastError(message);
@@ -117,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { token: nextToken, user: nextUser } = await loginWithGoogle(idToken);
         persist(nextToken, nextUser);
+        return nextUser;
       } catch (err) {
         const message = err instanceof ApiError ? err.message : "Google sign-in failed";
         setLastError(message);
@@ -135,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { token: nextToken, user: nextUser } = await registerApi(name, email, password);
         persist(nextToken, nextUser);
+        return nextUser;
       } catch (err) {
         const message = err instanceof ApiError ? err.message : "Registration failed";
         setLastError(message);

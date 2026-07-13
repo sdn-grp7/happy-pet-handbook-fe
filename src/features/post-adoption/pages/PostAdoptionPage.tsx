@@ -9,7 +9,7 @@ import {
   submitCheckIn,
 } from "@/features/post-adoption/api/postAdoptionApi";
 import type { PostAdoptionCheckIn } from "@/features/post-adoption/types";
-import { useI18n } from "@/i18n/I18nContext";
+import { useI18n, type TranslationKey } from "@/i18n/I18nContext";
 
 const STATUS_STYLE: Record<PostAdoptionCheckIn["status"], string> = {
   scheduled: "bg-amber-500/10 text-amber-800",
@@ -17,8 +17,14 @@ const STATUS_STYLE: Record<PostAdoptionCheckIn["status"], string> = {
   overdue: "bg-destructive/10 text-destructive",
 };
 
+const STATUS_KEYS: Record<PostAdoptionCheckIn["status"], TranslationKey> = {
+  scheduled: "postAdoption.statusScheduled",
+  submitted: "postAdoption.statusSubmitted",
+  overdue: "postAdoption.statusOverdue",
+};
+
 export function PostAdoptionPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { user } = useAuth();
   const [checkIns, setCheckIns] = useState<PostAdoptionCheckIn[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -37,25 +43,27 @@ export function PostAdoptionPage() {
     }
   };
 
+  const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
+
   return (
     <>
       <PageMeta
-        title="Post-Adoption — PawPath"
-        description="Scheduled check-ins, health reports, and follow-up after pickup."
+        title={`${t("postAdoption.title")} — PawPath`}
+        description={t("postAdoption.metaDesc")}
       />
       <PageHero
         eyebrow={t("postAdoption.eyebrow")}
         title={t("postAdoption.title")}
         subtitle={t("postAdoption.subtitle")}
       />
-      <section className="max-w-3xl mx-auto px-6 py-12 space-y-4">
+      <section className="mx-auto max-w-3xl space-y-4 px-6 py-12">
         {checkIns.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm rounded-2xl border border-dashed border-border p-8">
-            No check-ins yet. They appear after an adoption is completed — browse{" "}
+          <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            {t("postAdoption.emptyBefore")}{" "}
             <Link to="/adoption" className="text-primary hover:underline">
-              adoption listings
+              {t("postAdoption.emptyLink")}
             </Link>{" "}
-            to get started.
+            {t("postAdoption.emptyAfter")}
           </p>
         )}
         {checkIns.map((c) => (
@@ -68,41 +76,43 @@ export function PostAdoptionPage() {
                 <h3 className="font-semibold">{c.petName}</h3>
                 <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  Due {new Date(c.scheduledAt).toLocaleDateString()}
+                  {t("postAdoption.due", {
+                    date: new Date(c.scheduledAt).toLocaleDateString(dateLocale),
+                  })}
                 </div>
               </div>
               <span
-                className={`text-xs font-medium uppercase px-2 py-0.5 rounded-full ${STATUS_STYLE[c.status]}`}
+                className={`rounded-full px-2 py-0.5 text-xs font-medium uppercase ${STATUS_STYLE[c.status]}`}
               >
-                {c.status}
+                {t(STATUS_KEYS[c.status])}
               </span>
             </div>
 
             {c.status === "submitted" && c.healthReport && (
               <div className="mt-4 rounded-lg bg-muted/50 p-4 text-sm">
-                <div className="flex items-center gap-1 text-primary font-medium mb-1">
-                  <CheckCircle2 className="h-4 w-4" /> Submitted
+                <div className="mb-1 flex items-center gap-1 font-medium text-primary">
+                  <CheckCircle2 className="h-4 w-4" /> {t("postAdoption.submittedLabel")}
                   {c.submittedAt && (
-                    <span className="font-normal text-muted-foreground ml-1">
-                      · {new Date(c.submittedAt).toLocaleDateString()}
+                    <span className="ml-1 font-normal text-muted-foreground">
+                      · {new Date(c.submittedAt).toLocaleDateString(dateLocale)}
                     </span>
                   )}
                 </div>
                 <p>{c.healthReport}</p>
                 {c.photoUrl && (
-                  <img src={c.photoUrl} alt="" className="mt-3 rounded-lg max-h-40 object-cover" />
+                  <img src={c.photoUrl} alt="" className="mt-3 max-h-40 rounded-lg object-cover" />
                 )}
               </div>
             )}
 
             {c.status === "scheduled" && (
               <div className="mt-4 space-y-2">
-                <label className="text-sm font-medium flex items-center gap-1">
-                  <Camera className="h-4 w-4" /> Health report
+                <label className="flex items-center gap-1 text-sm font-medium">
+                  <Camera className="h-4 w-4" /> {t("postAdoption.healthReport")}
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="How is your pet doing? Eating, energy, behavior…"
+                  placeholder={t("postAdoption.healthPlaceholder")}
                   value={drafts[c.id] ?? ""}
                   onChange={(e) => setDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -110,10 +120,10 @@ export function PostAdoptionPage() {
                 <button
                   type="button"
                   onClick={() => handleSubmit(c.id)}
-                  className="rounded-full px-4 py-2 text-sm text-primary-foreground font-medium"
+                  className="rounded-full px-4 py-2 text-sm font-medium text-primary-foreground"
                   style={{ background: "var(--gradient-warm)" }}
                 >
-                  Submit check-in
+                  {t("postAdoption.submit")}
                 </button>
               </div>
             )}

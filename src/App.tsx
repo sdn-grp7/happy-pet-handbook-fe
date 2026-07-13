@@ -1,9 +1,17 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SiteLayout } from "@/components/SiteLayout";
-import { RequireAuth, GuestOnly } from "@/features/auth/components/RequireAuth";
+import {
+  RequireAuth,
+  RequireAdmin,
+  GuestOnly,
+  RedirectAdminToPanel,
+} from "@/features/auth/components/RequireAuth";
 import { HomePage } from "@/pages/HomePage";
 import { GuidePage } from "@/features/guides/pages/GuidePage";
+import { AdminGuidesPage } from "@/features/guides/pages/AdminGuidesPage";
+import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
+import { AdminLayout } from "@/features/admin/components/AdminLayout";
 import { MapPage } from "@/features/pets/pages/MapPage";
 import { CommunityPage } from "@/features/forum/pages/CommunityPage";
 import { ContactPage } from "@/features/contact/pages/ContactPage";
@@ -14,28 +22,36 @@ import { PetDetailPage } from "@/features/pets/pages/PetDetailPage";
 import { ReputationPage } from "@/features/reputation/pages/ReputationPage";
 import { PetHistoryPage } from "@/features/pet-history/pages/PetHistoryPage";
 import { PostAdoptionPage } from "@/features/post-adoption/pages/PostAdoptionPage";
+import { PublicProfilePage } from "@/features/auth/pages/PublicProfilePage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+
+/** Public pages — signed-in admins are sent to /admin. */
+function PublicAppShell() {
+  return (
+    <RedirectAdminToPanel>
+      <SiteLayout />
+    </RedirectAdminToPanel>
+  );
+}
 
 export default function App() {
   return (
     <ErrorBoundary>
       <Routes>
-        <Route element={<SiteLayout />}>
-          {/* Public — browse & read */}
-          <Route index element={<HomePage />} />
-          <Route path="basics" element={<GuidePage />} />
-          <Route path="nutrition" element={<GuidePage />} />
-          <Route path="training" element={<GuidePage />} />
-          <Route path="health" element={<GuidePage />} />
-          <Route path="adoption" element={<AdoptionPage />} />
-          <Route path="adoption/:id" element={<PetDetailPage />} />
-          <Route path="map" element={<MapPage />} />
-          <Route path="forum" element={<CommunityPage />} />
-          <Route path="community" element={<CommunityPage />} />
-          <Route path="reputation" element={<ReputationPage />} />
-          <Route path="contact" element={<ContactPage />} />
+        <Route
+          path="admin"
+          element={
+            <RequireAdmin>
+              <AdminLayout />
+            </RequireAdmin>
+          }
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="guides" element={<AdminGuidesPage />} />
+        </Route>
 
-          {/* Auth required */}
+        {/* Login outside RedirectAdminToPanel so logout can reach it. */}
+        <Route element={<SiteLayout />}>
           <Route
             path="login"
             element={
@@ -44,6 +60,23 @@ export default function App() {
               </GuestOnly>
             }
           />
+        </Route>
+
+        <Route element={<PublicAppShell />}>
+          <Route index element={<HomePage />} />
+          <Route path="guides/:slug" element={<GuidePage />} />
+          <Route path="basics" element={<Navigate to="/guides/basics" replace />} />
+          <Route path="nutrition" element={<Navigate to="/guides/nutrition" replace />} />
+          <Route path="training" element={<Navigate to="/guides/training" replace />} />
+          <Route path="health" element={<Navigate to="/guides/health" replace />} />
+          <Route path="adoption" element={<AdoptionPage />} />
+          <Route path="adoption/:id" element={<PetDetailPage />} />
+          <Route path="map" element={<MapPage />} />
+          <Route path="forum" element={<CommunityPage />} />
+          <Route path="community" element={<CommunityPage />} />
+          <Route path="reputation" element={<ReputationPage />} />
+          <Route path="users/:id" element={<PublicProfilePage />} />
+          <Route path="contact" element={<ContactPage />} />
           <Route
             path="profile"
             element={
@@ -61,7 +94,6 @@ export default function App() {
               </RequireAuth>
             }
           />
-
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

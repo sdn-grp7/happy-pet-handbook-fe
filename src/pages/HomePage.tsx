@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { useAuth } from "@/features/auth/contexts/AuthContext";
+import { useGuides } from "@/features/guides/contexts/GuidesContext";
+import { pickL, guidePath } from "@/features/guides/types";
 import { useI18n } from "@/i18n/I18nContext";
 import type { TranslationKey } from "@/i18n/I18nContext";
 import { getGivenName } from "@/lib/utils";
@@ -23,32 +25,7 @@ import { getGivenName } from "@/lib/utils";
 const heroImage =
   "https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1536&h=1024&fit=crop";
 
-const pillars = [
-  {
-    to: "/basics",
-    icon: BookOpen,
-    titleKey: "home.pillarBasics" as TranslationKey,
-    descKey: "home.pillarBasicsDesc" as TranslationKey,
-  },
-  {
-    to: "/nutrition",
-    icon: Apple,
-    titleKey: "home.pillarNutrition" as TranslationKey,
-    descKey: "home.pillarNutritionDesc" as TranslationKey,
-  },
-  {
-    to: "/training",
-    icon: GraduationCap,
-    titleKey: "home.pillarTraining" as TranslationKey,
-    descKey: "home.pillarTrainingDesc" as TranslationKey,
-  },
-  {
-    to: "/health",
-    icon: Stethoscope,
-    titleKey: "home.pillarHealth" as TranslationKey,
-    descKey: "home.pillarHealthDesc" as TranslationKey,
-  },
-] as const;
+const PILLAR_ICONS = [BookOpen, Apple, GraduationCap, Stethoscope];
 
 const exploreLinks = [
   {
@@ -79,7 +56,9 @@ const exploreLinks = [
 
 export function HomePage() {
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { guides } = useGuides();
+  const firstGuidePath = guides[0] ? guidePath(guides[0].slug) : "/guides/basics";
 
   return (
     <>
@@ -114,7 +93,7 @@ export function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                to="/basics"
+                to={firstGuidePath}
                 className="inline-flex items-center gap-2 rounded-full px-6 py-3 font-medium text-primary-foreground shadow-[var(--shadow-soft)] transition hover:opacity-95"
                 style={{ background: "var(--gradient-warm)" }}
               >
@@ -159,26 +138,32 @@ export function HomePage() {
           <p className="mt-3 text-muted-foreground">{t("home.pillarsSubtitle")}</p>
         </div>
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {pillars.map(({ to, icon: Icon, titleKey, descKey }) => (
-            <Link
-              key={to}
-              to={to}
-              className="group rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-soft)]"
-            >
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-primary-foreground"
-                style={{ background: "var(--gradient-warm)" }}
+          {guides.map((guide, i) => {
+            const Icon = PILLAR_ICONS[i % PILLAR_ICONS.length];
+            const to = guidePath(guide.slug);
+            return (
+              <Link
+                key={guide.id}
+                to={to}
+                className="group rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-soft)]"
               >
-                <Icon className="h-5 w-5" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">{t(titleKey)}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{t(descKey)}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                {t("home.readMore")}{" "}
-                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              </span>
-            </Link>
-          ))}
+                <div
+                  className="flex h-11 w-11 items-center justify-center rounded-xl text-primary-foreground"
+                  style={{ background: "var(--gradient-warm)" }}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold">{pickL(guide.title, locale)}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {pickL(guide.subtitle, locale)}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                  {t("home.readMore")}{" "}
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

@@ -132,9 +132,41 @@ export function PetDetailModal({ pet, open, onOpenChange }: PetDetailModalProps)
           <div className="flex min-h-0 flex-col overflow-y-auto p-5 sm:p-6">
             <div className="pr-8">
               <h2 className="text-3xl font-bold tracking-tight">{pet.name}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("pet.listedBy", { name: pet.postedByName })}
-              </p>
+              {pet.status === "adopted" && pet.adoptedBy ? (
+                <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+                  <p>
+                    {t("pet.adopter")}{" "}
+                    <Link
+                      to={`/users/${encodeURIComponent(pet.adoptedBy.id)}`}
+                      className="font-medium text-primary hover:underline"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      {pet.adoptedBy.name}
+                    </Link>
+                  </p>
+                  <p className="text-xs">
+                    {t("pet.listedBy")}{" "}
+                    <Link
+                      to={`/users/${encodeURIComponent(pet.postedById)}`}
+                      className="font-medium text-foreground/80 hover:text-primary hover:underline"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      {pet.postedByName}
+                    </Link>
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("pet.listedBy")}{" "}
+                  <Link
+                    to={`/users/${encodeURIComponent(pet.postedById)}`}
+                    className="font-medium text-primary hover:underline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    {pet.postedByName}
+                  </Link>
+                </p>
+              )}
             </div>
 
             <div className="mt-5">

@@ -63,6 +63,8 @@ export interface PetListing {
   notes?: string;
   images: string[];
   status: ListingStatus;
+  /** Present when status is adopted — the system user who adopted the pet. */
+  adoptedBy?: UserRef;
   /** Empty when source has no vaccine book */
   vaccinations: PetVaccination[];
   /** Ownership history — 0..n prior/current owners over time */

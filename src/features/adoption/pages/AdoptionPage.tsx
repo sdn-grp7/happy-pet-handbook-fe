@@ -343,6 +343,12 @@ export function AdoptionPage() {
                       {t(STATUS_KEYS[pet.status])}
                     </span>
                   </div>
+                  {pet.status === "adopted" && pet.adoptedBy && (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {t("pet.adopter")}{" "}
+                      <span className="font-medium text-foreground">{pet.adoptedBy.name}</span>
+                    </p>
+                  )}
                   {pet.description ? (
                     <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                       {pet.description}

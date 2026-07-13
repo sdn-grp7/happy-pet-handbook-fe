@@ -195,6 +195,17 @@ export function MapPage() {
                   <div className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5 shrink-0" /> {selected.pickup?.address}
                   </div>
+                  {selected.status === "adopted" && selected.adoptedBy && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {t("pet.adopter")}{" "}
+                      <Link
+                        to={`/users/${encodeURIComponent(selected.adoptedBy.id)}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {selected.adoptedBy.name}
+                      </Link>
+                    </p>
+                  )}
                   <Link
                     to={`/adoption?pet=${selected.id}`}
                     className="mt-3 inline-block text-sm font-medium text-primary hover:underline"

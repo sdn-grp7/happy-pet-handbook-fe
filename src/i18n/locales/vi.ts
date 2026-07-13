@@ -122,7 +122,7 @@ export const vi = {
     resultCount: "{count} bé phù hợp",
   },
   pet: {
-    listedBy: "Đăng bởi {name}",
+    listedBy: "Đăng bởi",
     id: "Mã số",
     breed: "Giống",
     gender: "Giới tính",
@@ -130,6 +130,7 @@ export const vi = {
     weight: "Cân nặng",
     health: "Tình trạng sức khỏe",
     adoptionStatus: "Tình trạng nhận nuôi",
+    adopter: "Nhận nuôi bởi",
     received: "Thời gian tiếp nhận",
     pickup: "Điểm đón",
     male: "Đực",

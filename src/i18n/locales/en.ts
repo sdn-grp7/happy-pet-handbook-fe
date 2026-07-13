@@ -124,7 +124,7 @@ export const en: TranslationDict = {
     resultCount: "{count} pets match",
   },
   pet: {
-    listedBy: "Listed by {name}",
+    listedBy: "Listed by",
     id: "ID",
     breed: "Breed",
     gender: "Gender",
@@ -132,6 +132,7 @@ export const en: TranslationDict = {
     weight: "Weight",
     health: "Health",
     adoptionStatus: "Adoption status",
+    adopter: "Adopted by",
     received: "Received",
     pickup: "Pickup",
     male: "Male",
